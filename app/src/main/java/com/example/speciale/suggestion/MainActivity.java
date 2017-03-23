@@ -83,8 +83,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private double mean, stdDev, min, max;
     private boolean bike, walk, drive = false;
     private double numBiking, numWalking = 0;
-    private int type;
-    Location lastLocation;
+
+    //new handler
+    ArrayList<Double> listX = new ArrayList();
+    ArrayList<Double> listXThreshold = new ArrayList();
+
+    double variableX, variableXmiddle = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -401,6 +405,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // yVal.setText("Y: " +(int)sensorEvent.values[1]);
         // zVal.setText("Z: " +(int)sensorEvent.values[2]);
 
+        //ny
+        double d = (double)sensorEvent.values[0];
+        listX.add(d);
+        if(listX.size()> 4){
+            variableX = calculateAverage(listX);
+            listX.clear();
+        }
+        listXThreshold.add(d);
+        if(listXThreshold.size()> 200){
+            variableXmiddle = calculateAverage(listXThreshold);
+            listXThreshold.clear();
+            Log.v("Together", " variableXmiddle: "+ variableXmiddle + " variableX: " + variableX );
+        }
+
+
+
         AccObj bla = new AccObj(sensorEvent.values[0], sensorEvent.values[1], sensorEvent.values[2]);
         List<Double> euclidNormArray = new ArrayList();
 
@@ -428,7 +448,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             min = statsEuclid.getMin();
             max = statsEuclid.getMax();
 
-            Log.v("MainActivity", "Mean: "+ mean + " - stdDev: " + stdDev + " - min: " + min + " -  max: " +max );
+           // Log.v("MainActivity", "Mean: "+ mean + " - stdDev: " + stdDev + " - min: " + min + " -  max: " +max );
 
 
             Attribute attributeMean = new Attribute("mean");
@@ -470,7 +490,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Classifier cls = null;
             try {
 
-                cls = (Classifier) SerializationHelper.read("/mnt/sdcard/classifier.model");
+                cls = (Classifier) SerializationHelper.read(getAssets().open("classifier.model"));
+
                 double fDistribution = cls.classifyInstance(iUse);
 
                 //        Log.v("MainActivity", "Model Read : success");
@@ -561,14 +582,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onAccuracyChanged(Sensor sensor, int i) {
 
     }
-
-    private double calculateAverage(List <Integer> marks) {
-        Integer sum = 0;
+   // TODO: lower the amount of time it is done
+    private double calculateAverage(List <Double> marks) {
+        double sum = 0;
+    //    Log.v("this is", "sizzzzzeeeeeeee:" + marks.size());
         if(!marks.isEmpty()) {
-            for (Integer mark : marks) {
+            for (double mark : marks) {
                 sum += mark;
+    //            Log.v("this is", "yeeeeeeeeeeee:" + sum);
             }
-            return sum.doubleValue() / marks.size();
+            return sum / marks.size();
         }
         return sum;
     }
