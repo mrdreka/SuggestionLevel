@@ -10,6 +10,7 @@ import android.hardware.SensorManager;
 
 
 import android.location.Location;
+import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -23,6 +24,7 @@ import android.widget.Toast;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -80,9 +82,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     Statistics statsEuclid;
     private Instance iUse;
 
-    private double mean, stdDev, min, max;
+    private double mean, stdDev, min, max, thresholdSkii;
     private boolean bike, walk, drive = false;
     private double numBiking, numWalking = 0;
+
+    private int shortestTurn = 500;
+    //longest is calcualted with amount of shortturn, so
+    private int longestTurn = 0;
+
+    private boolean shortestTurnbool = false;
+    private boolean LongestTurnbool = false;
 
     //new handler
     ArrayList<Double> listX = new ArrayList();
@@ -137,6 +146,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
+
+        //interval for performing a check
+        final Handler h = new Handler();
+        h.postDelayed(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                shortestTurnbool = true;
+                h.postDelayed(this, shortestTurn);
+
+                longestTurn = longestTurn + shortestTurn;
+                if(longestTurn > 5999){
+
+                }
+
+            }
+        }, 1000); // set the measure to milliseconds
     }
 
     //google maps stuff
@@ -405,22 +432,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // yVal.setText("Y: " +(int)sensorEvent.values[1]);
         // zVal.setText("Z: " +(int)sensorEvent.values[2]);
 
-        //ny
+        //digital filter
         double d = (double)sensorEvent.values[0];
         listX.add(d);
-        if(listX.size()> 4){
+        if(listX.size()> 3){
             variableX = calculateAverage(listX);
-            listX.clear();
+            listX.remove(0);
+          //  Log.v("Together", " List size: "+ listX.get(0));
         }
-        listXThreshold.add(d);
+
+
+        listXThreshold.add(variableX);
         if(listXThreshold.size()> 200){
             variableXmiddle = calculateAverage(listXThreshold);
-            listXThreshold.clear();
+
             Log.v("Together", " variableXmiddle: "+ variableXmiddle + " variableX: " + variableX );
+
+            statsEuclid = new Statistics(listXThreshold);
+
+            mean = statsEuclid.getMean() ;
+            stdDev = statsEuclid.getStdDev();
+            min = statsEuclid.getMin();
+            max = statsEuclid.getMax();
+            thresholdSkii = (min + max) / 2;
+
+
+            System.out.println("Min value " + min);
+            System.out.println("Max value "+ max);
+            System.out.println("thresholdSkii" +thresholdSkii);
+            //
+            listXThreshold.clear();
         }
 
 
-
+/*
         AccObj bla = new AccObj(sensorEvent.values[0], sensorEvent.values[1], sensorEvent.values[2]);
         List<Double> euclidNormArray = new ArrayList();
 
@@ -439,6 +484,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 euclidNormArray.add(
                         Math.sqrt( Math.pow(accObjList.get(i).getX(),2) + Math.pow(accObjList.get(i).getY(),2) + Math.pow(accObjList.get(i).getZ(),2) )
                 );
+
             }
 
             statsEuclid = new Statistics((ArrayList<Double>) euclidNormArray);
@@ -448,7 +494,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             min = statsEuclid.getMin();
             max = statsEuclid.getMax();
 
-           // Log.v("MainActivity", "Mean: "+ mean + " - stdDev: " + stdDev + " - min: " + min + " -  max: " +max );
+            Log.v("MainActivity", "Mean: "+ mean + " - stdDev: " + stdDev + " - min: " + min + " -  max: " +max );
 
 
             Attribute attributeMean = new Attribute("mean");
@@ -574,7 +620,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             }
 
-        }
+        } */
 
     }
 
