@@ -79,25 +79,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     TextView xVal,yVal,zVal, infered, accSamples, eta, coordinates;
     ImageView transportIMG;
     List<AccObj> accObjList = new ArrayList<AccObj>();
-    Statistics statsEuclid;
+    Statistics statsEuclidX,statsEuclidY, statsEuclidZ ;
     private Instance iUse;
 
-    private double mean, stdDev, min, max, thresholdSkii;
+    private double mean, stdDev, minX, maxX, thresholdSkiiX;
+    private double minY, maxY, thresholdSkiiY;
+    private double minZ, maxZ, thresholdSkiiZ;
     private boolean bike, walk, drive = false;
     private double numBiking, numWalking = 0;
 
     private int shortestTurn = 500;
     //longest is calcualted with amount of shortturn, so
     private int longestTurn = 0;
+    private int countRegulation = 0;
 
     private boolean shortestTurnbool = false;
-    private boolean LongestTurnbool = false;
+    private boolean LongestTurnboolMissed = false;
 
     //new handler
     ArrayList<Double> listX = new ArrayList();
-    ArrayList<Double> listXThreshold = new ArrayList();
-
-    double variableX, variableXmiddle = 0;
+    ArrayList<Double> listY = new ArrayList();
+    ArrayList<Double> listZ = new ArrayList();
+    ArrayList<Double> listXThreshold= new ArrayList();
+    ArrayList<Double> listYThreshold= new ArrayList();
+    ArrayList<Double> listZThreshold = new ArrayList();
+    double variableX, variableXmiddle, variableY, variableYmiddle, variableZ, variableZmiddle = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Button startBtn = (Button)findViewById(R.id.startBtn);
 
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
 
 /*        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         locationListener = new LocationListener() {
@@ -159,7 +165,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 longestTurn = longestTurn + shortestTurn;
                 if(longestTurn > 5999){
-
+                    longestTurn = 0;
+                    LongestTurnboolMissed = true;
                 }
 
             }
@@ -207,19 +214,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 .build();
         createLocationRequest();
     }
-    /**
-     * Sets up the location request. Android has two location request settings:
-     * {@code ACCESS_COARSE_LOCATION} and {@code ACCESS_FINE_LOCATION}. These settings control
-     * the accuracy of the current location. This sample uses ACCESS_FINE_LOCATION, as defined in
-     * the AndroidManifest.xml.
-     * <p/>
-     * When the ACCESS_FINE_LOCATION setting is specified, combined with a fast update
-     * interval (5 seconds), the Fused Location Provider API returns location updates that are
-     * accurate to within a few feet.
-     * <p/>
-     * These settings are appropriate for mapping applications that show real-time location
-     * updates.
-     */
+
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
 
@@ -255,8 +250,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-
-
     public void setETA(int type) {
 
         final Location storcenterNord = new Location("");
@@ -269,8 +262,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (mCurrentLocation != null) {
             double distance = mCurrentLocation.distanceTo(storcenterNord);
-
-            
 
             if (type == 0) {
                 eta.setText( (int) (distance / walkSpeed)/60 +" min");
@@ -292,25 +283,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     public void startSensors() {
+        //normal is 14Hz
         senSensorManager.registerListener(this, senAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
 
         if (!mRequestingLocationUpdates) {
             mRequestingLocationUpdates = true;
             startLocationUpdates();
         }
-        /*
-        int permissionCheck = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_COARSE_LOCATION);
-        if (permissionCheck >= 0) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-
-        }
-        else {
-            // permission denied, boo! Disable the
-            // functionality that depends on this permission.
-            Toast.makeText(this, "Permission denied to access your location", Toast.LENGTH_SHORT).show();
-        } */
-
     }
     /**
      * Removes location updates from the FusedLocationApi.
@@ -364,11 +343,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onConnected(Bundle connectionHint) {
        // Log.i(this, "Connected to GoogleApiClient");
 
-        // If the initial location was never previously requested, we use
-        // FusedLocationApi.getLastLocation() to get it. If it was previously requested, we store
-        // its value in the Bundle and check for it in onCreate(). We
-        // do not request it again unless the user specifically requests location updates by pressing
-        // the Start Updates button.
         //
         // Because we cache the value of the initial location in the Bundle, it means that if the
         // user launches the activity,
@@ -424,7 +398,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onSaveInstanceState(savedInstanceState);
     }
 
-
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
 
@@ -433,195 +406,49 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // zVal.setText("Z: " +(int)sensorEvent.values[2]);
 
         //digital filter
-        double d = (double)sensorEvent.values[0];
-        listX.add(d);
-        if(listX.size()> 3){
+        double dX = (double) sensorEvent.values[0];
+        double dY = (double)sensorEvent.values[1];
+        double dZ = (double)sensorEvent.values[2];
+        listX.add(dX);
+        listY.add(dY);
+        listZ.add(dZ);
+        //System.out.println("sensor" + dX );
+
+        if (listX.size() > 3) {
             variableX = calculateAverage(listX);
             listX.remove(0);
-          //  Log.v("Together", " List size: "+ listX.get(0));
+            listXThreshold.add(variableX);
+
+            variableY = calculateAverage(listY);
+            listY.remove(0);
+            listYThreshold.add(variableY);
+
+            variableZ = calculateAverage(listZ);
+            listZ.remove(0);
+            listZThreshold.add(variableZ);
+
+            Log.v("Together", " List size: "+ variableX);
         }
+        if (listXThreshold != null) {
+            if (listXThreshold.size() > 100) {
 
+                statsEuclidX = new Statistics(listXThreshold);
+                //mean = statsEuclid.getMean() ;
+                // stdDev = statsEuclid.getStdDev();
+                minX = statsEuclidX.getMin();
+                maxX = statsEuclidX.getMax();
+                thresholdSkiiX = (minX + maxX) / 2;
 
-        listXThreshold.add(variableX);
-        if(listXThreshold.size()> 200){
-            variableXmiddle = calculateAverage(listXThreshold);
+                variableXmiddle = calculateAverage(listXThreshold);
 
-            Log.v("Together", " variableXmiddle: "+ variableXmiddle + " variableX: " + variableX );
-
-            statsEuclid = new Statistics(listXThreshold);
-
-            mean = statsEuclid.getMean() ;
-            stdDev = statsEuclid.getStdDev();
-            min = statsEuclid.getMin();
-            max = statsEuclid.getMax();
-            thresholdSkii = (min + max) / 2;
-
-
-            System.out.println("Min value " + min);
-            System.out.println("Max value "+ max);
-            System.out.println("thresholdSkii" +thresholdSkii);
-            //
-            listXThreshold.clear();
+                Log.v("Together", " variableXmiddle: " + variableXmiddle + " variableX: " + variableX);
+                System.out.println("Min value " + minX + " Max value " + maxX + " thresholdSkii" + thresholdSkiiX);
+                // empty the list
+                listXThreshold.clear();
+                listYThreshold.clear();
+                listZThreshold.clear();
+            }
         }
-
-
-/*
-        AccObj bla = new AccObj(sensorEvent.values[0], sensorEvent.values[1], sensorEvent.values[2]);
-        List<Double> euclidNormArray = new ArrayList();
-
-        if (accObjList.size() < 129) {
-
-            accObjList.add(bla);
-            //    accSamples.setText(accObjList.size() + " samples");
-
-
-        }
-
-        if (accObjList.size() == 128) {
-
-            for (int i = 0; i < accObjList.size(); i++) {
-
-                euclidNormArray.add(
-                        Math.sqrt( Math.pow(accObjList.get(i).getX(),2) + Math.pow(accObjList.get(i).getY(),2) + Math.pow(accObjList.get(i).getZ(),2) )
-                );
-
-            }
-
-            statsEuclid = new Statistics((ArrayList<Double>) euclidNormArray);
-
-            mean = statsEuclid.getMean() ;
-            stdDev = statsEuclid.getStdDev();
-            min = statsEuclid.getMin();
-            max = statsEuclid.getMax();
-
-            Log.v("MainActivity", "Mean: "+ mean + " - stdDev: " + stdDev + " - min: " + min + " -  max: " +max );
-
-
-            Attribute attributeMean = new Attribute("mean");
-            Attribute attributeStdDev = new Attribute("stdDeviation");
-            Attribute attributeMin = new Attribute("min");
-            Attribute attributeMax = new Attribute("max");
-
-            // Declare the class attribute along with its values
-            FastVector fvClassVal = new FastVector(5);
-            fvClassVal.addElement("walking");
-            fvClassVal.addElement("biking");
-            fvClassVal.addElement("driving");
-            Attribute ClassAttribute = new Attribute("movementType", fvClassVal);
-
-            // Declare the feature vector
-            FastVector fvWekaAttributes = new FastVector(5);
-            fvWekaAttributes.addElement(attributeMean);
-            fvWekaAttributes.addElement(attributeStdDev);
-            fvWekaAttributes.addElement(attributeMin);
-            fvWekaAttributes.addElement(attributeMax);
-
-            fvWekaAttributes.addElement(ClassAttribute);
-
-            // Create an empty training set
-            Instances isTrainingSet = new Instances("Rel", fvWekaAttributes, 10);
-            // Set class index
-            isTrainingSet.setClassIndex(4);
-
-            //Our instance
-            iUse = new Instance(isTrainingSet.numAttributes());
-            isTrainingSet.add(iUse);
-            iUse.setValue((Attribute)fvWekaAttributes.elementAt(0), mean);
-            iUse.setValue((Attribute)fvWekaAttributes.elementAt(1), stdDev);
-            iUse.setValue((Attribute) fvWekaAttributes.elementAt(2), min);
-            iUse.setValue((Attribute) fvWekaAttributes.elementAt(3), max);
-            iUse.setMissing(4);
-            iUse.setDataset(isTrainingSet);
-
-            Classifier cls = null;
-            try {
-
-                cls = (Classifier) SerializationHelper.read(getAssets().open("classifier.model"));
-
-                double fDistribution = cls.classifyInstance(iUse);
-
-                //        Log.v("MainActivity", "Model Read : success");
-
-                if((int) fDistribution == 0){
-
-                    transportIMG.setImageResource(R.drawable.walk);
-
-
-                    Log.v("MainActivity", "Walking");
-                    numWalking ++;
-                    //  infered.setText("WALKING - walking: " + numWalking + " - biking: " + numBiking);
-
-                    walk = true;
-                    bike = false;
-                    drive = false;
-
-                    mean = 0;
-                    stdDev = 0;
-                    min = 0;
-                    max =0;
-
-                    setETA(0);
-                }
-
-                if((int) fDistribution == 1){
-
-                    transportIMG.setImageResource(R.drawable.bike);
-
-                    Log.v("MainActivity", "Biking");
-                    numBiking ++;
-                    //    infered.setText("BIKING - walking: " + (int)numWalking + " - biking: " + (int)numBiking);
-
-
-
-                    walk = false;
-                    bike = bike;
-                    drive = false;
-
-                    mean = 0;
-                    stdDev = 0;
-                    min = 0;
-                    max =0;
-
-                    setETA(1);
-
-                }
-
-                if((int) fDistribution == 2){
-
-                    transportIMG.setImageResource(R.drawable.car);
-
-
-                    Log.v("MainActivity", "Driving");
-
-                    //  infered.setText("Driving");
-
-                    walk = false;
-                    bike = false;
-                    drive = true;
-
-                    mean = 0;
-                    stdDev = 0;
-                    min = 0;
-                    max =0;
-
-                    setETA(2);
-
-                }
-
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-
-
-            for (int i = 0; i < 64; i++) {
-                accObjList.remove(0);
-
-            }
-
-        } */
-
     }
 
     @Override
@@ -635,7 +462,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if(!marks.isEmpty()) {
             for (double mark : marks) {
                 sum += mark;
-    //            Log.v("this is", "yeeeeeeeeeeee:" + sum);
+    //
             }
             return sum / marks.size();
         }
