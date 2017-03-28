@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     TextView xVal,yVal,zVal, infered, accSamples, eta, coordinates;
     ImageView transportIMG;
     List<AccObj> accObjList = new ArrayList<AccObj>();
-    Statistics statsEuclidX,statsEuclidY, statsEuclidZ ;
+    Statistics statsEuclidX,statsEuclidY, statsEuclidZ, statsEuclidXSample ;
     private Instance iUse;
 
     private double mean, stdDev, minX, maxX, thresholdSkiiX;
@@ -95,14 +95,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private boolean shortestTurnbool = false;
     private boolean LongestTurnboolMissed = false;
+    private boolean thresholdExist = false;
 
-    //new handler
+    //unfiltered sensor
     ArrayList<Double> listX = new ArrayList();
     ArrayList<Double> listY = new ArrayList();
     ArrayList<Double> listZ = new ArrayList();
+    //for filtered data to threshold
     ArrayList<Double> listXThreshold= new ArrayList();
     ArrayList<Double> listYThreshold= new ArrayList();
     ArrayList<Double> listZThreshold = new ArrayList();
+    ////for filtered data to sample
+    ArrayList<Double> listXSample= new ArrayList();
+    ArrayList<Double> listYSample= new ArrayList();
+    ArrayList<Double> listZSample= new ArrayList();
+    //for approved sample
+    ArrayList<Double> sampleXOld = new ArrayList();
+    ArrayList<Double> sampleYOld = new ArrayList();
+    ArrayList<Double> sampleZOld = new ArrayList();
+    //first layer of approved
+    ArrayList<Double> sampleXNew = new ArrayList();
+    ArrayList<Double> sampleYNew = new ArrayList();
+    ArrayList<Double> sampleZNew = new ArrayList();
+
     double variableX, variableXmiddle, variableY, variableYmiddle, variableZ, variableZmiddle = 0;
 
     @Override
@@ -151,7 +166,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 startSensors();
             }
         });
-
 
         //interval for performing a check
         final Handler h = new Handler();
@@ -249,7 +263,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Toast.makeText(this, "Permission denied to access your location", Toast.LENGTH_SHORT).show();
         }
     }
-
+/*
     public void setETA(int type) {
 
         final Location storcenterNord = new Location("");
@@ -278,18 +292,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Log.v("d" ,"my location: " + mCurrentLocation);
 
         }
-
-
-    }
+    } */
 
     public void startSensors() {
-        //normal is 14Hz
-        senSensorManager.registerListener(this, senAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        //game is 50Hz
+        senSensorManager.registerListener(this, senAccelerometer, SensorManager.SENSOR_DELAY_GAME);
 
-        if (!mRequestingLocationUpdates) {
+        //TODO:add speed into judging of level, until then don't use
+        /*if (!mRequestingLocationUpdates) {
             mRequestingLocationUpdates = true;
             startLocationUpdates();
-        }
+        } */
     }
     /**
      * Removes location updates from the FusedLocationApi.
@@ -401,36 +414,81 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
 
-        // xVal.setText("X: " +(int)sensorEvent.values[0]);
-        // yVal.setText("Y: " +(int)sensorEvent.values[1]);
-        // zVal.setText("Z: " +(int)sensorEvent.values[2]);
-
         //digital filter
-        double dX = (double) sensorEvent.values[0];
+        double dX = (double)sensorEvent.values[0];
         double dY = (double)sensorEvent.values[1];
         double dZ = (double)sensorEvent.values[2];
         listX.add(dX);
         listY.add(dY);
         listZ.add(dZ);
+        //TODO: change over to force a.k.a euclidNorm
         //System.out.println("sensor" + dX );
 
-        if (listX.size() > 3) {
+        //set the amount to average over
+        if (listX.size() >= 6) {
             variableX = calculateAverage(listX);
             listX.remove(0);
             listXThreshold.add(variableX);
+            listXSample.add(variableX);
 
             variableY = calculateAverage(listY);
             listY.remove(0);
             listYThreshold.add(variableY);
+            listYSample.add(variableY);
 
             variableZ = calculateAverage(listZ);
             listZ.remove(0);
             listZThreshold.add(variableZ);
+            listZSample.add(variableZ);
 
-            Log.v("Together", " List size: "+ variableX);
+          //  Log.v("Together", " variableX: "+ variableX);
         }
+        //de tre
+        //listXSample ? sampleXNew-> sampleXOld
         if (listXThreshold != null) {
-            if (listXThreshold.size() > 100) {
+            //set sample size
+            if (listXSample.size()  > 11 && thresholdExist) {
+
+                double sumStart = listXSample.get(0);
+                double sumEnd = listXSample.get(11);
+                double sum = Math.abs(sumStart)-Math.abs(sumEnd);
+                //Log.v("noise", "difference between start and end: " +sum);
+
+                //first sample get set
+
+                //Log.v("fuuuuuuuuuuuuuu", " sampleXNew: " + sampleXNew.size() + " listXSample: " + listXSample.size());
+                if (sampleXNew.size() == 0 && listXSample.size() < 13 ) {
+                    sampleXNew.addAll(listXSample);
+                }
+                //TODO:set a precision for the if
+                else if( sampleXNew.size() != 0)
+                {
+                    sampleXNew.clear();
+                    sampleXNew.addAll(listXSample);
+                    countRegulation++;
+                }
+                Log.v("fuuuuuuuuuuuuuu", " sampleXNew: " + calculateAverage(sampleXNew)  + " listXSample: " + calculateAverage(sampleXOld));
+               // else{ countRegulation = 0; }
+
+                statsEuclidXSample = new Statistics(sampleXNew);
+                //Log.v("pre-Cakey", " lowest number: " + new Statistics(sampleXNew).getMin() + " threshold: " +thresholdSkiiX + " countRegulation: " + countRegulation);
+                //decision area, TODO: Set up the time interval
+                if(calculateAverage(sampleXNew) < thresholdSkiiX && thresholdSkiiX > calculateAverage(sampleXOld)){
+                    Log.v("Turn cakey", " Turn: ");
+                    countRegulation = 0;
+                }
+                //set new register to old
+                sampleXOld.clear();
+                sampleXOld.addAll(sampleXNew);
+                //reset
+                listXSample.clear();
+                listYSample.clear();
+                listZSample.clear();
+            }
+
+
+            if (listXThreshold.size() > 250) {
+                thresholdExist = true;
 
                 statsEuclidX = new Statistics(listXThreshold);
                 //mean = statsEuclid.getMean() ;
@@ -458,7 +516,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
    // TODO: lower the amount of time it is done
     private double calculateAverage(List <Double> marks) {
         double sum = 0;
-    //    Log.v("this is", "sizzzzzeeeeeeee:" + marks.size());
+    //    Log.v("this is", "size:" + marks.size());
         if(!marks.isEmpty()) {
             for (double mark : marks) {
                 sum += mark;
