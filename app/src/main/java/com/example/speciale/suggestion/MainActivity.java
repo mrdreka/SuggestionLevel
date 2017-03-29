@@ -22,11 +22,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 
 import weka.core.Instance;
@@ -119,6 +124,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     ArrayList<Double> sampleZNew = new ArrayList();
 
     double variableX, variableXmiddle, variableY, variableYmiddle, variableZ, variableZmiddle = 0;
+    //
+    FileWriter writer;
+    File file;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,6 +148,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
         Button startBtn = (Button)findViewById(R.id.startBtn);
+        Button saveBtn = (Button)findViewById(R.id.button2);
 
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
@@ -153,7 +163,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }; */
         // Update values using data stored in the Bundle.
         updateValuesFromBundle(savedInstanceState);
-
         // Kick off the process of building a GoogleApiClient and requesting the LocationServices
         // API.
         buildGoogleApiClient();
@@ -162,10 +171,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         startBtn.setOnClickListener(new View.OnClickListener() {
 
             public void onClick(View v) {
-
                 startSensors();
             }
         });
+
+
 
         //interval for performing a check
         final Handler h = new Handler();
@@ -186,6 +196,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }, 1000); // set the measure to milliseconds
     }
+
+
 
     //google maps stuff
 
@@ -296,7 +308,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void startSensors() {
         //game is 50Hz
+
+        try {
+            File path = this.getExternalFilesDir(null);
+            writer = new FileWriter(new File(path,"output.csv"));
+            //writer = new FileWriter("/mnt/sdcard/"+"output.csv");
+        } catch (IOException e) {
+                e.printStackTrace();
+
+        }
+
         senSensorManager.registerListener(this, senAccelerometer, SensorManager.SENSOR_DELAY_GAME);
+
 
         //TODO:add speed into judging of level, until then don't use
         /*if (!mRequestingLocationUpdates) {
@@ -346,6 +369,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onStop() {
         mGoogleApiClient.disconnect();
+
+        try {
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
 
         super.onStop();
     }
@@ -501,6 +531,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 Log.v("Together", " variableXmiddle: " + variableXmiddle + " variableX: " + variableX);
                 System.out.println("Min value " + minX + " Max value " + maxX + " thresholdSkii" + thresholdSkiiX);
+
+                try {
+                    for(Double str: listXThreshold) {
+                        writer.write(Double.toString(str) +"\n");
+                    }
+                    writer.write("sample"+"\n");
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+
                 // empty the list
                 listXThreshold.clear();
                 listYThreshold.clear();
