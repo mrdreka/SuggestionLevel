@@ -3,6 +3,7 @@ package com.example.speciale.suggestion;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -29,6 +30,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
@@ -84,10 +86,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     TextView xVal,yVal,zVal, infered, accSamples, eta, coordinates;
     ImageView transportIMG;
     List<AccObj> accObjList = new ArrayList<AccObj>();
-    Statistics statsEuclidX,statsEuclidY, statsEuclidZ, statsEuclidXSample ;
+    Statistics statsEuclid,statsEuclidY, statsEuclidZ, statsEuclidXSample ;
     private Instance iUse;
 
-    private double mean, stdDev, minX, maxX, thresholdSkiiX;
+    private double mean, stdDev, min, max, thresholdSkii;
     private double minY, maxY, thresholdSkiiY;
     private double minZ, maxZ, thresholdSkiiZ;
     private boolean bike, walk, drive = false;
@@ -106,28 +108,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     ArrayList<Double> listX = new ArrayList();
     ArrayList<Double> listY = new ArrayList();
     ArrayList<Double> listZ = new ArrayList();
+    ArrayList<Double> listEuclidNorm = new ArrayList();
     //for filtered data to threshold
     ArrayList<Double> listXThreshold= new ArrayList();
     ArrayList<Double> listYThreshold= new ArrayList();
     ArrayList<Double> listZThreshold = new ArrayList();
+    ArrayList<Double> listEuclidNormThreshold = new ArrayList();
     ////for filtered data to sample
-    ArrayList<Double> listXSample= new ArrayList();
-    ArrayList<Double> listYSample= new ArrayList();
-    ArrayList<Double> listZSample= new ArrayList();
+    ArrayList<Double> listXSample = new ArrayList();
+    ArrayList<Double> listYSample = new ArrayList();
+    ArrayList<Double> listZSample = new ArrayList();
+    ArrayList<Double> listEuclidNormSample = new ArrayList();
     //for approved sample
     ArrayList<Double> sampleXOld = new ArrayList();
     ArrayList<Double> sampleYOld = new ArrayList();
     ArrayList<Double> sampleZOld = new ArrayList();
+    ArrayList<Double> sampleEuclidNormOld = new ArrayList();
     //first layer of approved
     ArrayList<Double> sampleXNew = new ArrayList();
     ArrayList<Double> sampleYNew = new ArrayList();
     ArrayList<Double> sampleZNew = new ArrayList();
+    ArrayList<Double> SampleEuclidNormNew = new ArrayList();
 
-    double variableX, variableXmiddle, variableY, variableYmiddle, variableZ, variableZmiddle = 0;
+    double variableX, variableXmiddle, variableY, variableYmiddle, variableZ, variableEuclidNorm, variableZmiddle = 0;
     //
-    FileWriter writer;
+    FileWriter writer, writer2;
     File file;
-
+    SharedPreferences sharedpreferences;
+    public static final String MyPREFERENCES = "MyPrefs";
+    private int filenumber = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,16 +176,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // API.
         buildGoogleApiClient();
 
+        sharedpreferences = getSharedPreferences(MyPREFERENCES, Context.MODE_PRIVATE);
 
         startBtn.setOnClickListener(new View.OnClickListener() {
 
             public void onClick(View v) {
+                //shared preference for files
+                sharedpreferences = getSharedPreferences("your_prefs", Activity.MODE_PRIVATE);
+                filenumber = sharedpreferences.getInt("filenumberkey", -1);
+                filenumber++;
+                SharedPreferences.Editor editor = sharedpreferences.edit();
+                editor.putInt("filenumberkey", filenumber);
+                editor.commit();
+                eta.setText( (int) filenumber +":file");
+
                 startSensors();
             }
+
         });
 
+    }
 
-
+    public void turnTimer(){
         //interval for performing a check
         final Handler h = new Handler();
         h.postDelayed(new Runnable()
@@ -311,7 +332,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         try {
             File path = this.getExternalFilesDir(null);
-            writer = new FileWriter(new File(path,"output.csv"));
+            writer = new FileWriter(new File(path,"XYZV"+ filenumber + ".csv"));
+            writer2 = new FileWriter(new File(path,"STDTurn"+ filenumber + ".csv"));
+
             //writer = new FileWriter("/mnt/sdcard/"+"output.csv");
         } catch (IOException e) {
                 e.printStackTrace();
@@ -372,6 +395,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         try {
             writer.close();
+            writer2.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -444,6 +468,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
 
+        Calendar c = Calendar.getInstance();
+
         //digital filter
         double dX = (double)sensorEvent.values[0];
         double dY = (double)sensorEvent.values[1];
@@ -452,10 +478,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         listY.add(dY);
         listZ.add(dZ);
         //TODO: change over to force a.k.a euclidNorm
-        //System.out.println("sensor" + dX );
+        listEuclidNorm.add(Math.sqrt(dX*dX+dY*dY+dZ*dZ));
 
         //set the amount to average over
-        if (listX.size() >= 6) {
+        if (listEuclidNorm.size() >= 10) {
             variableX = calculateAverage(listX);
             listX.remove(0);
             listXThreshold.add(variableX);
@@ -471,72 +497,83 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             listZThreshold.add(variableZ);
             listZSample.add(variableZ);
 
-          //  Log.v("Together", " variableX: "+ variableX);
+            variableEuclidNorm = calculateAverage(listEuclidNorm);
+            listEuclidNorm.remove(0);
+            listEuclidNormThreshold.add(variableEuclidNorm);
+            listEuclidNormSample.add(variableEuclidNorm);
+            //Log.v("Together", " variableEuclidNorm: "+ variableEuclidNorm);
+
+            //write to file
+            try {
+                writer.write(c.get(Calendar.HOUR)+":"+c.get(Calendar.SECOND)+ ":"+c.get(Calendar.MILLISECOND) + ","  + Double.toString(variableX) + "," + Double.toString(variableY) + "," +
+                        Double.toString(variableZ) + "," + Double.toString(variableEuclidNorm) + "\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         //de tre
         //listXSample ? sampleXNew-> sampleXOld
-        if (listXThreshold != null) {
+        if (listEuclidNormThreshold != null) {
             //set sample size
-            if (listXSample.size()  > 11 && thresholdExist) {
+            if (listEuclidNormSample.size()  > 11 && thresholdExist) {
 
-                double sumStart = listXSample.get(0);
-                double sumEnd = listXSample.get(11);
+            /*    double sumStart = listEuclidNormSample.get(0);
+                double sumEnd = listEuclidNormSample.get(11);
                 double sum = Math.abs(sumStart)-Math.abs(sumEnd);
                 //Log.v("noise", "difference between start and end: " +sum);
-
+                */
                 //first sample get set
 
                 //Log.v("fuuuuuuuuuuuuuu", " sampleXNew: " + sampleXNew.size() + " listXSample: " + listXSample.size());
-                if (sampleXNew.size() == 0 && listXSample.size() < 13 ) {
-                    sampleXNew.addAll(listXSample);
+                if (SampleEuclidNormNew.size() == 0 && listEuclidNormSample.size() < 13 ) {
+                    SampleEuclidNormNew.addAll(listEuclidNormSample);
                 }
                 //TODO:set a precision for the if
-                else if( sampleXNew.size() != 0)
+                else if(SampleEuclidNormNew.size() != 0)
                 {
-                    sampleXNew.clear();
-                    sampleXNew.addAll(listXSample);
+                    SampleEuclidNormNew.clear();
+                    SampleEuclidNormNew.addAll(listEuclidNormSample);
                     countRegulation++;
                 }
-                Log.v("fuuuuuuuuuuuuuu", " sampleXNew: " + calculateAverage(sampleXNew)  + " listXSample: " + calculateAverage(sampleXOld));
+                Log.v("fuuuuuuuuuuuuuu", " SampleEuclidNormNew: " + calculateAverage(SampleEuclidNormNew)  + " sampleEuclidNormOld: " + calculateAverage(sampleEuclidNormOld));
                // else{ countRegulation = 0; }
 
-                statsEuclidXSample = new Statistics(sampleXNew);
                 //Log.v("pre-Cakey", " lowest number: " + new Statistics(sampleXNew).getMin() + " threshold: " +thresholdSkiiX + " countRegulation: " + countRegulation);
                 //decision area, TODO: Set up the time interval
-                if(calculateAverage(sampleXNew) < thresholdSkiiX && thresholdSkiiX > calculateAverage(sampleXOld)){
+                if(calculateAverage(SampleEuclidNormNew) < thresholdSkii && thresholdSkii > calculateAverage(sampleEuclidNormOld)){
                     Log.v("Turn cakey", " Turn: ");
                     countRegulation = 0;
                 }
                 //set new register to old
-                sampleXOld.clear();
-                sampleXOld.addAll(sampleXNew);
+                sampleEuclidNormOld.clear();
+                sampleEuclidNormOld.addAll(SampleEuclidNormNew);
                 //reset
                 listXSample.clear();
                 listYSample.clear();
                 listZSample.clear();
+                listEuclidNormSample.clear();
             }
 
 
-            if (listXThreshold.size() > 250) {
+            if (listEuclidNormThreshold.size() > 250) {
                 thresholdExist = true;
 
-                statsEuclidX = new Statistics(listXThreshold);
+                statsEuclid = new Statistics(listEuclidNormThreshold);
                 //mean = statsEuclid.getMean() ;
-                // stdDev = statsEuclid.getStdDev();
-                minX = statsEuclidX.getMin();
-                maxX = statsEuclidX.getMax();
-                thresholdSkiiX = (minX + maxX) / 2;
 
-                variableXmiddle = calculateAverage(listXThreshold);
+                stdDev = statsEuclid.getStdDev();
+                min = statsEuclid.getMin();
+                max = statsEuclid.getMax();
+                thresholdSkii = (min + max) / 2;
+
+                variableXmiddle = calculateAverage(listEuclidNormThreshold);
 
                 Log.v("Together", " variableXmiddle: " + variableXmiddle + " variableX: " + variableX);
-                System.out.println("Min value " + minX + " Max value " + maxX + " thresholdSkii" + thresholdSkiiX);
+                System.out.println("Min value " + min + " Max value " + max + " thresholdSkii" + thresholdSkii);
 
+                //write to file
                 try {
-                    for(Double str: listXThreshold) {
-                        writer.write(Double.toString(str) +"\n");
-                    }
-                    writer.write("sample"+"\n");
+                    writer2.write(c.get(Calendar.HOUR)+":"+c.get(Calendar.SECOND)+ ":"+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDev) + "," + Double.toString(20) + "\n");
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -547,6 +584,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 listXThreshold.clear();
                 listYThreshold.clear();
                 listZThreshold.clear();
+                listEuclidNormThreshold.clear();
             }
         }
     }
