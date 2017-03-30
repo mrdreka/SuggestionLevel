@@ -85,17 +85,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     TextView xVal,yVal,zVal, infered, accSamples, eta, coordinates;
     ImageView transportIMG;
-    List<AccObj> accObjList = new ArrayList<AccObj>();
+   // List<AccObj> accObjList = new ArrayList<AccObj>();
     Statistics statsEuclid,statsEuclidY, statsEuclidZ, statsEuclidXSample ;
-    private Instance iUse;
 
     private double mean, stdDev, min, max, thresholdSkii;
     private double minY, maxY, thresholdSkiiY;
     private double minZ, maxZ, thresholdSkiiZ;
-    private boolean bike, walk, drive = false;
-    private double numBiking, numWalking = 0;
 
-    private int shortestTurn = 500;
+
+    private int shortestTurn = 100;
     //longest is calcualted with amount of shortturn, so
     private int longestTurn = 0;
     private int countRegulation = 0;
@@ -105,35 +103,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private boolean thresholdExist = false;
 
     //unfiltered sensor
-    ArrayList<Double> listX = new ArrayList();
-    ArrayList<Double> listY = new ArrayList();
-    ArrayList<Double> listZ = new ArrayList();
-    ArrayList<Double> listEuclidNorm = new ArrayList();
+    ArrayList<Double> listX = new ArrayList<>();
+    ArrayList<Double> listY = new ArrayList<>();
+    ArrayList<Double> listZ = new ArrayList<>();
+    ArrayList<Double> listEuclidNorm = new ArrayList<>();
+    //list for second level filter
+    ArrayList<Double> listX2 = new ArrayList<>();
+    ArrayList<Double> listY2 = new ArrayList<>();
+    ArrayList<Double> listZ2 = new ArrayList<>();
+    ArrayList<Double> listEuclidNorm2 = new ArrayList<>();
     //for filtered data to threshold
-    ArrayList<Double> listXThreshold= new ArrayList();
-    ArrayList<Double> listYThreshold= new ArrayList();
-    ArrayList<Double> listZThreshold = new ArrayList();
-    ArrayList<Double> listEuclidNormThreshold = new ArrayList();
+    ArrayList<Double> listXThreshold= new ArrayList<>();
+    ArrayList<Double> listYThreshold= new ArrayList<>();
+    ArrayList<Double> listZThreshold = new ArrayList<>();
+    ArrayList<Double> listEuclidNormThreshold = new ArrayList<>();
     ////for filtered data to sample
-    ArrayList<Double> listXSample = new ArrayList();
-    ArrayList<Double> listYSample = new ArrayList();
-    ArrayList<Double> listZSample = new ArrayList();
-    ArrayList<Double> listEuclidNormSample = new ArrayList();
+    ArrayList<Double> listXSample = new ArrayList<>();
+    ArrayList<Double> listYSample = new ArrayList<>();
+    ArrayList<Double> listZSample = new ArrayList<>();
+    ArrayList<Double> listEuclidNormSample = new ArrayList<>();
     //for approved sample
-    ArrayList<Double> sampleXOld = new ArrayList();
-    ArrayList<Double> sampleYOld = new ArrayList();
-    ArrayList<Double> sampleZOld = new ArrayList();
-    ArrayList<Double> sampleEuclidNormOld = new ArrayList();
+    ArrayList<Double> sampleXOld = new ArrayList<>();
+    ArrayList<Double> sampleYOld = new ArrayList<>();
+    ArrayList<Double> sampleZOld = new ArrayList<>();
+    ArrayList<Double> sampleEuclidNormOld = new ArrayList<>();
     //first layer of approved
-    ArrayList<Double> sampleXNew = new ArrayList();
-    ArrayList<Double> sampleYNew = new ArrayList();
-    ArrayList<Double> sampleZNew = new ArrayList();
-    ArrayList<Double> SampleEuclidNormNew = new ArrayList();
+    ArrayList<Double> sampleXNew = new ArrayList<>();
+    ArrayList<Double> sampleYNew = new ArrayList<>();
+    ArrayList<Double> sampleZNew = new ArrayList<>();
+    ArrayList<Double> SampleEuclidNormNew = new ArrayList<>();
 
-    double variableX, variableXmiddle, variableY, variableYmiddle, variableZ, variableEuclidNorm, variableZmiddle = 0;
+    double variableXmiddle, //variableX, variableZ, variableEuclidNorm,
+            variableY, variableYmiddle,  variableZmiddle = 0;
     //
     FileWriter writer, writer2;
-    File file;
     SharedPreferences sharedpreferences;
     public static final String MyPREFERENCES = "MyPrefs";
     private int filenumber = 0;
@@ -188,7 +191,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 SharedPreferences.Editor editor = sharedpreferences.edit();
                 editor.putInt("filenumberkey", filenumber);
                 editor.commit();
-                eta.setText( (int) filenumber +":file");
+                eta.setText( filenumber +":file");
 
                 startSensors();
             }
@@ -205,12 +208,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             @Override
             public void run()
             {
+
+                Log.d("timestuff",""+longestTurn);
                 shortestTurnbool = true;
                 h.postDelayed(this, shortestTurn);
 
                 longestTurn = longestTurn + shortestTurn;
                 if(longestTurn > 5999){
-                    longestTurn = 0;
+                    //longestTurn = 0;
                     LongestTurnboolMissed = true;
                 }
 
@@ -327,29 +332,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     } */
 
-    public void startSensors() {
-        //game is 50Hz
-
-        try {
-            File path = this.getExternalFilesDir(null);
-            writer = new FileWriter(new File(path,"XYZV"+ filenumber + ".csv"));
-            writer2 = new FileWriter(new File(path,"STDTurn"+ filenumber + ".csv"));
-
-            //writer = new FileWriter("/mnt/sdcard/"+"output.csv");
-        } catch (IOException e) {
-                e.printStackTrace();
-
-        }
-
-        senSensorManager.registerListener(this, senAccelerometer, SensorManager.SENSOR_DELAY_GAME);
-
-
-        //TODO:add speed into judging of level, until then don't use
-        /*if (!mRequestingLocationUpdates) {
-            mRequestingLocationUpdates = true;
-            startLocationUpdates();
-        } */
-    }
     /**
      * Removes location updates from the FusedLocationApi.
      */
@@ -393,12 +375,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onStop() {
         mGoogleApiClient.disconnect();
 
-        try {
+    /*    try {
             writer.close();
             writer2.close();
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        } */
 
 
         super.onStop();
@@ -465,6 +447,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onSaveInstanceState(savedInstanceState);
     }
 
+    public void startSensors() {
+        //game is 50Hz
+
+        try {
+            File path = this.getExternalFilesDir(null);
+            writer = new FileWriter(new File(path,"XYZV"+ filenumber + ".csv"));
+            writer2 = new FileWriter(new File(path,"STDTurn"+ filenumber + ".csv"));
+
+            //writer = new FileWriter("/mnt/sdcard/"+"output.csv");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        senSensorManager.registerListener(this, senAccelerometer, SensorManager.SENSOR_DELAY_GAME);
+        turnTimer();
+
+        //TODO:add speed into judging of level, until then don't use
+        /*if (!mRequestingLocationUpdates) {
+            mRequestingLocationUpdates = true;
+            startLocationUpdates();
+        } */
+    }
+
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
 
@@ -474,6 +479,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         double dX = (double)sensorEvent.values[0];
         double dY = (double)sensorEvent.values[1];
         double dZ = (double)sensorEvent.values[2];
+
         listX.add(dX);
         listY.add(dY);
         listZ.add(dZ);
@@ -482,30 +488,49 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         //set the amount to average over
         if (listEuclidNorm.size() >= 10) {
-            variableX = calculateAverage(listX);
+            double variableX = calculateAverage(listX);
             listX.remove(0);
+            listX2.add(variableX);
+
+            double variableY = calculateAverage(listY);
+            listY.remove(0);
+            listY2.add(variableY);
+
+            double variableZ = calculateAverage(listZ);
+            listZ.remove(0);
+            listZ2.add(variableZ);
+
+            double variableEuclidNorm = calculateAverage(listEuclidNorm);
+            listEuclidNorm.remove(0);
+            listEuclidNorm2.add(variableEuclidNorm);
+            //Log.v("Together", " variableEuclidNorm: "+ variableEuclidNorm);
+        }
+        // second level
+        if (listEuclidNorm2.size() >= 10) {
+            double variableX = calculateAverage(listX2);
+            listX2.remove(0);
             listXThreshold.add(variableX);
             listXSample.add(variableX);
 
-            variableY = calculateAverage(listY);
-            listY.remove(0);
+            double variableY = calculateAverage(listY2);
+            listY2.remove(0);
             listYThreshold.add(variableY);
             listYSample.add(variableY);
 
-            variableZ = calculateAverage(listZ);
-            listZ.remove(0);
+            double variableZ = calculateAverage(listZ2);
+            listZ2.remove(0);
             listZThreshold.add(variableZ);
             listZSample.add(variableZ);
 
-            variableEuclidNorm = calculateAverage(listEuclidNorm);
-            listEuclidNorm.remove(0);
+            double variableEuclidNorm = calculateAverage(listEuclidNorm2);
+            listEuclidNorm2.remove(0);
             listEuclidNormThreshold.add(variableEuclidNorm);
             listEuclidNormSample.add(variableEuclidNorm);
             //Log.v("Together", " variableEuclidNorm: "+ variableEuclidNorm);
 
             //write to file
             try {
-                writer.write(c.get(Calendar.HOUR)+":"+c.get(Calendar.SECOND)+ ":"+c.get(Calendar.MILLISECOND) + ","  + Double.toString(variableX) + "," + Double.toString(variableY) + "," +
+                writer.write(c.get(Calendar.HOUR)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + ","  + Double.toString(variableX) + "," + Double.toString(variableY) + "," +
                         Double.toString(variableZ) + "," + Double.toString(variableEuclidNorm) + "\n");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -533,16 +558,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 {
                     SampleEuclidNormNew.clear();
                     SampleEuclidNormNew.addAll(listEuclidNormSample);
-                    countRegulation++;
+
                 }
                 Log.v("fuuuuuuuuuuuuuu", " SampleEuclidNormNew: " + calculateAverage(SampleEuclidNormNew)  + " sampleEuclidNormOld: " + calculateAverage(sampleEuclidNormOld));
                // else{ countRegulation = 0; }
 
                 //Log.v("pre-Cakey", " lowest number: " + new Statistics(sampleXNew).getMin() + " threshold: " +thresholdSkiiX + " countRegulation: " + countRegulation);
                 //decision area, TODO: Set up the time interval
-                if(calculateAverage(SampleEuclidNormNew) < thresholdSkii && thresholdSkii > calculateAverage(sampleEuclidNormOld)){
-                    Log.v("Turn cakey", " Turn: ");
-                    countRegulation = 0;
+                if(calculateAverage(SampleEuclidNormNew) < thresholdSkii && thresholdSkii > calculateAverage(sampleEuclidNormOld)
+                        && longestTurn >500 && Math.abs(calculateAverage(SampleEuclidNormNew))-Math.abs(calculateAverage(sampleEuclidNormOld)) > 0.2 ){
+                    longestTurn = 0;
+                    countRegulation++;
+                    Log.v("Turn cakey", " Turn: "+ countRegulation );
+                    Log.v("Turn cakey2", " SampleEuclidNormNew: "+ calculateAverage(SampleEuclidNormNew) + " sampleEuclidNormOld: "+ calculateAverage(sampleEuclidNormOld));
+
+                    //countRegulation = 0;
                 }
                 //set new register to old
                 sampleEuclidNormOld.clear();
@@ -553,7 +583,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 listZSample.clear();
                 listEuclidNormSample.clear();
             }
-
 
             if (listEuclidNormThreshold.size() > 250) {
                 thresholdExist = true;
@@ -568,17 +597,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 variableXmiddle = calculateAverage(listEuclidNormThreshold);
 
-                Log.v("Together", " variableXmiddle: " + variableXmiddle + " variableX: " + variableX);
+                Log.v("Together", " variableXmiddle: " + variableXmiddle + " stdDev: " + stdDev);
                 System.out.println("Min value " + min + " Max value " + max + " thresholdSkii" + thresholdSkii);
 
                 //write to file
                 try {
-                    writer2.write(c.get(Calendar.HOUR)+":"+c.get(Calendar.SECOND)+ ":"+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDev) + "," + Double.toString(20) + "\n");
+                    writer2.write(c.get(Calendar.HOUR)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDev) + "," + Double.toString(20) + "\n");
 
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
 
                 // empty the list
                 listXThreshold.clear();
