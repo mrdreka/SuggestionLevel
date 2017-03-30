@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected Boolean mRequestingLocationUpdates = false;
 
 
-    TextView xVal,yVal,zVal, infered, accSamples, eta, coordinates;
+    TextView xView, yView, vView, eta , accSamples,infered ;
     ImageView transportIMG;
    // List<AccObj> accObjList = new ArrayList<AccObj>();
     Statistics statsEuclid,statsEuclidY, statsEuclidZ, statsEuclidXSample ;
@@ -153,8 +153,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                 1);
         eta = (TextView)findViewById(R.id.eta);
-        coordinates = (TextView)findViewById(R.id.coordinates);
-
+        xView = (TextView)findViewById(R.id.xView);
+        yView = (TextView)findViewById(R.id.yView);
+        vView = (TextView)findViewById(R.id.vView);
 
         transportIMG = (ImageView)findViewById(R.id.transportIMG);
 
@@ -191,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 SharedPreferences.Editor editor = sharedpreferences.edit();
                 editor.putInt("filenumberkey", filenumber);
                 editor.commit();
-                eta.setText( filenumber +":file");
+                eta.setText("File number: " + filenumber);
 
                 startSensors();
             }
@@ -530,7 +531,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             //write to file
             try {
-                writer.write(c.get(Calendar.HOUR)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + ","  + Double.toString(variableX) + "," + Double.toString(variableY) + "," +
+                writer.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + ","  + Double.toString(variableX) + "," + Double.toString(variableY) + "," +
                         Double.toString(variableZ) + "," + Double.toString(variableEuclidNorm) + "\n");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -553,6 +554,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if (SampleEuclidNormNew.size() == 0 && listEuclidNormSample.size() < 13 ) {
                     SampleEuclidNormNew.addAll(listEuclidNormSample);
                 }
+                if (sampleXNew.size() == 0 && listXSample.size() < 13 ) {
+                    sampleXNew.addAll(listXSample);
+                }
+
                 //TODO:set a precision for the if
                 else if(SampleEuclidNormNew.size() != 0)
                 {
@@ -560,7 +565,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     SampleEuclidNormNew.addAll(listEuclidNormSample);
 
                 }
-                Log.v("fuuuuuuuuuuuuuu", " SampleEuclidNormNew: " + calculateAverage(SampleEuclidNormNew)  + " sampleEuclidNormOld: " + calculateAverage(sampleEuclidNormOld));
+              //  Log.v("fuuuuuuuuuuuuuu", " SampleEuclidNormNew: " + calculateAverage(SampleEuclidNormNew)  + " sampleEuclidNormOld: " + calculateAverage(sampleEuclidNormOld));
                // else{ countRegulation = 0; }
 
                 //Log.v("pre-Cakey", " lowest number: " + new Statistics(sampleXNew).getMin() + " threshold: " +thresholdSkiiX + " countRegulation: " + countRegulation);
@@ -569,6 +574,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         && longestTurn >500 && Math.abs(calculateAverage(SampleEuclidNormNew))-Math.abs(calculateAverage(sampleEuclidNormOld)) > 0.2 ){
                     longestTurn = 0;
                     countRegulation++;
+                    vView.setText("|v| turns: " + countRegulation);
                     Log.v("Turn cakey", " Turn: "+ countRegulation );
                     Log.v("Turn cakey2", " SampleEuclidNormNew: "+ calculateAverage(SampleEuclidNormNew) + " sampleEuclidNormOld: "+ calculateAverage(sampleEuclidNormOld));
 
@@ -583,7 +589,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 listZSample.clear();
                 listEuclidNormSample.clear();
             }
-
             if (listEuclidNormThreshold.size() > 250) {
                 thresholdExist = true;
 
@@ -602,7 +607,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 //write to file
                 try {
-                    writer2.write(c.get(Calendar.HOUR)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDev) + "," + Double.toString(20) + "\n");
+                    writer2.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDev) + "," + Double.toString(20) + "\n");
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -617,11 +622,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    public void xMethod(){
+
+    }
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
     }
-   // TODO: lower the amount of time it is done
     private double calculateAverage(List <Double> marks) {
         double sum = 0;
     //    Log.v("this is", "size:" + marks.size());
