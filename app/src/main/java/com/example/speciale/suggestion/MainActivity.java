@@ -86,17 +86,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     TextView xView, yView, vView, eta , accSamples,infered ;
     ImageView transportIMG;
    // List<AccObj> accObjList = new ArrayList<AccObj>();
-    Statistics statsEuclid,statsEuclidY, statsEuclidZ, statsEuclidXSample ;
+    Statistics statsEuclid,statsEuclidY, statsEuclidX ;
 
-    private double mean, stdDev, min, max, thresholdSkii;
-    private double minY, maxY, thresholdSkiiY;
-    private double minZ, maxZ, thresholdSkiiZ;
+    private double mean, stdDev, min, max, thresholdSkii, stdDevX, minX,maxX, thresholdSkiiX;
+    private double minY, maxY, stdDevY, thresholdSkiiY;
+    //private double minZ, maxZ, thresholdSkiiZ;
 
 
     private int shortestTurn = 100;
     //longest is calcualted with amount of shortturn, so
-    private int longestTurn = 0;
-    private int countRegulation = 0;
+    private int longestTurn, longestTurnX, longestTurnY = 0;
+    private int countRegulationEuclid, countRegulationX,  countRegulationY= 0;
+
 
     private boolean shortestTurnbool = false;
     private boolean LongestTurnboolMissed = false;
@@ -215,6 +216,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 h.postDelayed(this, shortestTurn);
 
                 longestTurn = longestTurn + shortestTurn;
+                longestTurnX = longestTurnX + shortestTurn;
+                longestTurnY = longestTurnY + shortestTurn;
                 if(longestTurn > 5999){
                     //longestTurn = 0;
                     LongestTurnboolMissed = true;
@@ -554,17 +557,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if (SampleEuclidNormNew.size() == 0 && listEuclidNormSample.size() < 13 ) {
                     SampleEuclidNormNew.addAll(listEuclidNormSample);
                 }
-                if (sampleXNew.size() == 0 && listXSample.size() < 13 ) {
-                    sampleXNew.addAll(listXSample);
-                }
-
                 //TODO:set a precision for the if
                 else if(SampleEuclidNormNew.size() != 0)
                 {
                     SampleEuclidNormNew.clear();
                     SampleEuclidNormNew.addAll(listEuclidNormSample);
-
                 }
+
+                if (sampleXNew.size() == 0 && listXSample.size() < 13 ) {
+                    sampleXNew.addAll(listXSample);
+                }
+                else if(sampleXNew.size() != 0)
+                {
+                    sampleXNew.clear();
+                    sampleXNew.addAll(listXSample);
+                }
+
+                if (sampleYNew.size() == 0 && listYSample.size() < 13 ) {
+                    sampleYNew.addAll(listYSample);
+                }
+                else if(sampleYNew.size() != 0)
+                {
+                    sampleYNew.clear();
+                    sampleYNew.addAll(listYSample);
+                }
+
               //  Log.v("fuuuuuuuuuuuuuu", " SampleEuclidNormNew: " + calculateAverage(SampleEuclidNormNew)  + " sampleEuclidNormOld: " + calculateAverage(sampleEuclidNormOld));
                // else{ countRegulation = 0; }
 
@@ -573,45 +590,87 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if(calculateAverage(SampleEuclidNormNew) < thresholdSkii && thresholdSkii > calculateAverage(sampleEuclidNormOld)
                         && longestTurn >500 && Math.abs(calculateAverage(SampleEuclidNormNew))-Math.abs(calculateAverage(sampleEuclidNormOld)) > 0.2 ){
                     longestTurn = 0;
-                    countRegulation++;
-                    vView.setText("|v| turns: " + countRegulation);
-                    Log.v("Turn cakey", " Turn: "+ countRegulation );
-                    Log.v("Turn cakey2", " SampleEuclidNormNew: "+ calculateAverage(SampleEuclidNormNew) + " sampleEuclidNormOld: "+ calculateAverage(sampleEuclidNormOld));
+                    countRegulationEuclid++;
+                    vView.setText("|v| turns: " + countRegulationEuclid);
+                //    Log.v("Turn cakey", " Turn: "+ countRegulationEuclid );
+             //       Log.v("Turn cakey2", " SampleEuclidNormNew: "+ calculateAverage(SampleEuclidNormNew) + " sampleEuclidNormOld: "+ calculateAverage(sampleEuclidNormOld));
 
-                    //countRegulation = 0;
                 }
+                if(calculateAverage(sampleXNew) < thresholdSkiiX && thresholdSkiiX > calculateAverage(sampleXOld)
+                        && longestTurnX >500 && Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) > 0.2 ){
+                    longestTurnX = 0;
+                    countRegulationX++;
+                    xView.setText("x turns: " + countRegulationX);
+                    Log.v("Turn cakey", " Turn: "+ countRegulationX );
+                    Log.v("Turn cakey2", " sampleXNew: "+ calculateAverage(sampleXNew) + " sampleXOld: "+ calculateAverage(sampleXOld));
+                } else if(calculateAverage(sampleXNew) > thresholdSkiiX && thresholdSkiiX < calculateAverage(sampleXOld)
+                        && longestTurnX >500 && Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) < 0.2 ){
+                    longestTurnX = 0;
+                    countRegulationX++;
+                    xView.setText("x turns: " + countRegulationX);
+                }
+                if(calculateAverage(sampleYNew) < thresholdSkiiY && thresholdSkiiY > calculateAverage(sampleYOld)
+                        && longestTurnY >500 && Math.abs(calculateAverage(sampleYNew))-Math.abs(calculateAverage(sampleYOld)) > 0.2 ){
+                    longestTurnY = 0;
+                    countRegulationY++;
+                    yView.setText("y turns: " + countRegulationY);
+                }
+                else if(calculateAverage(sampleYNew) > thresholdSkiiY && thresholdSkiiY < calculateAverage(sampleYOld)
+                        && longestTurnY >500 && Math.abs(calculateAverage(sampleYNew))-Math.abs(calculateAverage(sampleYOld)) < 0.2 ){
+                    longestTurnY = 0;
+                    countRegulationY++;
+                    yView.setText("y turns: " + countRegulationY);
+                }
+
                 //set new register to old
                 sampleEuclidNormOld.clear();
                 sampleEuclidNormOld.addAll(SampleEuclidNormNew);
+                //set new register to old for x
+                sampleXOld.clear();
+                sampleXOld.addAll(sampleXNew);
+                //set new register to old for y
+                sampleYOld.clear();
+                sampleYOld.addAll(sampleYNew);
                 //reset
                 listXSample.clear();
                 listYSample.clear();
                 listZSample.clear();
                 listEuclidNormSample.clear();
             }
+            //big sample size
             if (listEuclidNormThreshold.size() > 250) {
                 thresholdExist = true;
 
+                //
                 statsEuclid = new Statistics(listEuclidNormThreshold);
-                //mean = statsEuclid.getMean() ;
-
                 stdDev = statsEuclid.getStdDev();
                 min = statsEuclid.getMin();
                 max = statsEuclid.getMax();
                 thresholdSkii = (min + max) / 2;
 
                 variableXmiddle = calculateAverage(listEuclidNormThreshold);
-
                 Log.v("Together", " variableXmiddle: " + variableXmiddle + " stdDev: " + stdDev);
-                System.out.println("Min value " + min + " Max value " + max + " thresholdSkii" + thresholdSkii);
+                //System.out.println("Min value " + min + " Max value " + max + " thresholdSkii" + thresholdSkii);
 
                 //write to file
                 try {
                     writer2.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDev) + "," + Double.toString(20) + "\n");
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                //
+                statsEuclidX = new Statistics(listXThreshold);
+                stdDevX = statsEuclidX.getStdDev();
+                minX = statsEuclidX.getMin();
+                maxX = statsEuclidX.getMax();
+                thresholdSkiiX = (minX + maxX) / 2;
+
+                //
+                statsEuclidY = new Statistics(listYThreshold);
+                stdDevY = statsEuclidY.getStdDev();
+                minY = statsEuclidY.getMin();
+                maxY = statsEuclidY.getMax();
+                thresholdSkiiY = (minY + maxY) / 2;
 
                 // empty the list
                 listXThreshold.clear();
@@ -622,9 +681,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    public void xMethod(){
-
-    }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
