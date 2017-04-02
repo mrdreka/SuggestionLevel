@@ -11,18 +11,21 @@ import android.hardware.SensorManager;
 
 
 import android.location.Location;
+import android.os.Build;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -50,6 +53,8 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+
+import static android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener, ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
 
@@ -89,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     Statistics statsEuclid,statsEuclidY, statsEuclidX ;
 
     private double mean, stdDev, min, max, thresholdSkii, stdDevX, minX,maxX, thresholdSkiiX;
-    private double minY, maxY, stdDevY, thresholdSkiiY;
+    private double minY, maxY, stdDevY, thresholdSkiiY, stdDevs;
     //private double minZ, maxZ, thresholdSkiiZ;
 
 
@@ -194,10 +199,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 editor.putInt("filenumberkey", filenumber);
                 editor.commit();
                 eta.setText("File number: " + filenumber);
+               // hideSystemUI();
 
                 startSensors();
             }
 
+        });
+        saveBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                hideSystemUI();
+            }
         });
 
     }
@@ -228,6 +241,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
 
+    private void hideSystemUI() {
+        int uiOptions = this.getWindow().getDecorView().getSystemUiVisibility();
+        int newUiOptions = uiOptions;
+
+        if (Build.VERSION.SDK_INT >= 14) {
+            newUiOptions ^= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+        }
+        // Status bar hiding: Backwards compatible to Jellybean
+        if (Build.VERSION.SDK_INT >= 16) {
+            newUiOptions ^= View.SYSTEM_UI_FLAG_FULLSCREEN;
+
+        }
+/*
+        if (Build.VERSION.SDK_INT >= 18) {
+            newUiOptions ^= View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+        }  */
+        Log.v("fullscreen", "" + newUiOptions);
+        this.getWindow().getDecorView().setSystemUiVisibility(newUiOptions);
+    }
 
     //google maps stuff
 
@@ -379,14 +411,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onStop() {
         mGoogleApiClient.disconnect();
 
-    /*    try {
+        try {
             writer.close();
             writer2.close();
         } catch (IOException e) {
             e.printStackTrace();
-        } */
-
-
+        }
         super.onStop();
     }
     /**
@@ -468,10 +498,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         turnTimer();
 
         //TODO:add speed into judging of level, until then don't use
-        /*if (!mRequestingLocationUpdates) {
+        if (!mRequestingLocationUpdates) {
             mRequestingLocationUpdates = true;
             startLocationUpdates();
-        } */
+        }
     }
 
     @Override
@@ -534,8 +564,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             //write to file
             try {
-                writer.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + ","  + Double.toString(variableX) + "," + Double.toString(variableY) + "," +
+               writer.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + ","  + Double.toString(variableX) + "," + Double.toString(variableY) + "," +
                         Double.toString(variableZ) + "," + Double.toString(variableEuclidNorm) + "\n");
+                writer.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -668,21 +699,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 double yDifference = maxY-(minY);
                 double xDifference = maxX-(minX);
-                double stdDevs;
 
 
+                double amountTurns;
                 if(yDifference > xDifference){
                     stdDevs = yDifference;
+                    amountTurns = countRegulationY;
 
                 }
                 else{
                     stdDevs = xDifference;
+                    amountTurns = countRegulationX;
                 }
-
-
-                //write to file
+                //deviant,amount of turns, speed
                 try {
-                    writer2.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDevs) + "," + "speed" + "\n");
+                    writer2.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDevs) + "," + amountTurns + "," + mCurrentLocation.getSpeed()  +  "\n");
+                    writer2.flush();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

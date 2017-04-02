@@ -66,7 +66,7 @@
         android:id="@+id/button2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Save "
+        android:text="Full"
         app:layout_constraintTop_toTopOf="parent"
         android:layout_marginTop="16dp"
         android:layout_marginLeft="16dp"
@@ -78,13 +78,13 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="28dp"
         android:layout_marginLeft="8dp"
-        android:text="y turns: 0"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintRight_toLeftOf="@+id/vView"
         android:layout_marginRight="8dp"
+        android:text="y turns: 0"
+        android:textAppearance="@style/TextAppearance.AppCompat.Small"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHorizontal_bias="0.559"
-        app:layout_constraintLeft_toRightOf="@+id/xView" />
+        app:layout_constraintLeft_toRightOf="@+id/xView"
+        app:layout_constraintRight_toLeftOf="@+id/vView" />
 
     <TextView
         android:id="@+id/vView"
