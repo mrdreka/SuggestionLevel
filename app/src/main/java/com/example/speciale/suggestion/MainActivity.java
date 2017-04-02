@@ -652,12 +652,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 Log.v("Together", " variableXmiddle: " + variableXmiddle + " stdDev: " + stdDev);
                 //System.out.println("Min value " + min + " Max value " + max + " thresholdSkii" + thresholdSkii);
 
-                //write to file
-                try {
-                    writer2.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDev) + "," + Double.toString(20) + "\n");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
                 //
                 statsEuclidX = new Statistics(listXThreshold);
                 stdDevX = statsEuclidX.getStdDev();
@@ -672,6 +666,27 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 maxY = statsEuclidY.getMax();
                 thresholdSkiiY = (minY + maxY) / 2;
 
+                double yDifference = maxY-(minY);
+                double xDifference = maxX-(minX);
+                double stdDevs;
+
+
+                if(yDifference > xDifference){
+                    stdDevs = yDifference;
+
+                }
+                else{
+                    stdDevs = xDifference;
+                }
+
+
+                //write to file
+                try {
+                    writer2.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDevs) + "," + "speed" + "\n");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 // empty the list
                 listXThreshold.clear();
                 listYThreshold.clear();
@@ -680,7 +695,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }
     }
-
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
