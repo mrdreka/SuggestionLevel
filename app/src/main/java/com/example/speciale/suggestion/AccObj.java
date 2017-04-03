@@ -14,7 +14,6 @@ public class AccObj {
         this.z = z;
 
     }
-
     public double getX(){
         return x;
     }
@@ -31,6 +30,5 @@ public class AccObj {
     public String toString() {
         return "x:   " +getX()+ " " + getY() + " " + getZ();
     }
-
 
 }
