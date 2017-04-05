@@ -101,9 +101,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int shortestTurn = 100;
     //longest is calcualted with amount of shortturn, so
     private int longestTurn, longestTurnX, longestTurnY = 0;
-    private int countRegulationEuclid, countRegulationX,  countRegulationY= 0;
+    private int countRegulationEuclid, countRegulationX, topsX,  countRegulationY= 0;
 
 
+    private boolean risingX, fallingX = false;
     private boolean shortestTurnbool = false;
     private boolean LongestTurnboolMissed = false;
     private boolean thresholdExist = false;
@@ -146,6 +147,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     SharedPreferences sharedpreferences;
     public static final String MyPREFERENCES = "MyPrefs";
     private int filenumber = 0;
+    private int samemovementrising, samemovementfalling = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -337,36 +339,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Toast.makeText(this, "Permission denied to access your location", Toast.LENGTH_SHORT).show();
         }
     }
-/*
-    public void setETA(int type) {
-
-        final Location storcenterNord = new Location("");
-        storcenterNord.setLatitude(56.1704202d);
-        storcenterNord.setLongitude(10.188441399999988d);
-
-        double bikeSpeed = 5.5d; //M/S
-        double walkSpeed = 1.39d;
-        double driveSpeed = 13.5d;
-
-        if (mCurrentLocation != null) {
-            double distance = mCurrentLocation.distanceTo(storcenterNord);
-
-            if (type == 0) {
-                eta.setText( (int) (distance / walkSpeed)/60 +" min");
-            }
-
-            if (type == 1) {
-                eta.setText( (int) (distance / bikeSpeed)/60 +" min");
-            }
-            if (type == 2) {
-                eta.setText( (int) (distance / driveSpeed)/60 +" min");
-            }
-        }
-        else{
-            Log.v("d" ,"my location: " + mCurrentLocation);
-
-        }
-    } */
 
     /**
      * Removes location updates from the FusedLocationApi.
@@ -517,7 +489,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         listX.add(dX);
         listY.add(dY);
         listZ.add(dZ);
-        //TODO: change over to force a.k.a euclidNorm
+        //DONE: change over to force a.k.a euclidNorm
         listEuclidNorm.add(Math.sqrt(dX*dX+dY*dY+dZ*dZ));
 
         //set the amount to average over
@@ -624,17 +596,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     countRegulationEuclid++;
                     vView.setText("|v| turns: " + countRegulationEuclid);
                 //    Log.v("Turn cakey", " Turn: "+ countRegulationEuclid );
-             //       Log.v("Turn cakey2", " SampleEuclidNormNew: "+ calculateAverage(SampleEuclidNormNew) + " sampleEuclidNormOld: "+ calculateAverage(sampleEuclidNormOld));
+                //    Log.v("Turn cakey2", " SampleEuclidNormNew: "+ calculateAverage(SampleEuclidNormNew) + " sampleEuclidNormOld: "+ calculateAverage(sampleEuclidNormOld));
 
                 }
-                if(calculateAverage(sampleXNew) < thresholdSkiiX && thresholdSkiiX > calculateAverage(sampleXOld)
+                if(calculateAverage(sampleXNew) < thresholdSkiiX && thresholdSkiiX > calculateAverage(sampleXOld) && risingX
                         && longestTurnX >500 && Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) > 0.2 ){
                     longestTurnX = 0;
                     countRegulationX++;
                     xView.setText("x turns: " + countRegulationX);
                     Log.v("Turn cakey", " Turn: "+ countRegulationX );
                     Log.v("Turn cakey2", " sampleXNew: "+ calculateAverage(sampleXNew) + " sampleXOld: "+ calculateAverage(sampleXOld));
-                } else if(calculateAverage(sampleXNew) > thresholdSkiiX && thresholdSkiiX < calculateAverage(sampleXOld)
+                } else if(calculateAverage(sampleXNew) > thresholdSkiiX && thresholdSkiiX < calculateAverage(sampleXOld) && fallingX
                         && longestTurnX >500 && Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) < 0.2 ){
                     longestTurnX = 0;
                     countRegulationX++;
@@ -651,6 +623,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     longestTurnY = 0;
                     countRegulationY++;
                     yView.setText("y turns: " + countRegulationY);
+                }
+
+                //count all tops
+                //falling
+                if(calculateAverage(sampleXNew) < calculateAverage(sampleXOld) && Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) > 0.2 ){
+                    fallingX = true;
+                    risingX = false;
+                    if(samemovementfalling >= 1){
+                        topsX++;
+                        Log.w("upbeat", "topsX: " + topsX);
+                    }
+                    samemovementrising++;
+                    samemovementfalling = 0 ;
+                }
+                if(calculateAverage(sampleXNew) > calculateAverage(sampleXOld) &&
+                        Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) < 0.2 ){
+                    if(samemovementrising >= 1){
+                        topsX++;
+                        Log.w("upbeat", "topsX: " + topsX);
+                    }
+                    samemovementfalling++;
+                    samemovementrising = 0;
+                    fallingX = false;
+                    risingX = true;
                 }
 
                 //set new register to old
