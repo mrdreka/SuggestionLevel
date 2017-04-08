@@ -13,6 +13,8 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Handler;
+import android.os.SystemClock;
+import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -21,6 +23,7 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Chronometer;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -103,6 +106,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int longestTurn, longestTurnX, longestTurnY = 0;
     private int countRegulationEuclid, countRegulationX, topsX,  countRegulationY= 0;
 
+    long endTime,initialTime = 0;
 
     private boolean risingX, fallingX = false;
     private boolean shortestTurnbool = false;
@@ -149,6 +153,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private int filenumber = 0;
     private int samemovementrising, samemovementfalling = 0;
 
+    private boolean fiveSecond = false;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -173,6 +180,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         senSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         senAccelerometer = senSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+
 
 /*        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         locationListener = new LocationListener() {
@@ -202,8 +210,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 editor.commit();
                 eta.setText("File number: " + filenumber);
                // hideSystemUI();
-
                 startSensors();
+
+                delayTimer();
+
             }
 
         });
@@ -217,6 +227,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+
     public void turnTimer(){
         //interval for performing a check
         final Handler h = new Handler();
@@ -226,9 +237,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void run()
             {
 
-                Log.d("timestuff",""+longestTurn);
+               // Log.d("timestuff",""+longestTurn);
                 shortestTurnbool = true;
                 h.postDelayed(this, shortestTurn);
+
+                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                v.vibrate(3000);
 
                 longestTurn = longestTurn + shortestTurn;
                 longestTurnX = longestTurnX + shortestTurn;
@@ -241,7 +255,45 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }, 1000); // set the measure to milliseconds
     }
+    public void delayTimer(){
 
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                fiveSecond = true;
+                // Do something after 5s = 5000ms
+                Log.v("testtesttest", "5 sec");
+
+                recordtime();
+            }
+            //10seconds
+        }, 10000);
+    }
+
+    public void recordtime(){
+
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                fiveSecond = false;
+
+                try {
+                    writer.close();
+                    writer2.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                v.vibrate(4000);
+
+
+            }
+            //35seconds
+        }, 36000);
+    }
 
     private void hideSystemUI() {
         int uiOptions = this.getWindow().getDecorView().getSystemUiVisibility();
@@ -383,12 +435,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onStop() {
         mGoogleApiClient.disconnect();
 
-        try {
-            writer.close();
-            writer2.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
         super.onStop();
     }
     /**
@@ -455,13 +502,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void startSensors() {
         //game is 50Hz
-
         try {
             File path = this.getExternalFilesDir(null);
             writer = new FileWriter(new File(path,"XYZV"+ filenumber + ".csv"));
             writer2 = new FileWriter(new File(path,"STDTurn"+ filenumber + ".csv"));
 
-            //writer = new FileWriter("/mnt/sdcard/"+"output.csv");
+            writer.write("time,x,y,z,v" +"\n");
+
+            writer.flush();
+
+
+                    //writer = new FileWriter("/mnt/sdcard/"+"output.csv");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -478,19 +529,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
-
+    if(fiveSecond) {
         Calendar c = Calendar.getInstance();
 
         //digital filter
-        double dX = (double)sensorEvent.values[0];
-        double dY = (double)sensorEvent.values[1];
-        double dZ = (double)sensorEvent.values[2];
+        double dX = (double) sensorEvent.values[0];
+        double dY = (double) sensorEvent.values[1];
+        double dZ = (double) sensorEvent.values[2];
 
         listX.add(dX);
         listY.add(dY);
         listZ.add(dZ);
         //DONE: change over to force a.k.a euclidNorm
-        listEuclidNorm.add(Math.sqrt(dX*dX+dY*dY+dZ*dZ));
+        listEuclidNorm.add(Math.sqrt(dX * dX + dY * dY + dZ * dZ));
 
         //set the amount to average over
         if (listEuclidNorm.size() >= 10) {
@@ -536,7 +587,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             //write to file
             try {
-               writer.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + ","  + Double.toString(variableX) + "," + Double.toString(variableY) + "," +
+                //Log.d("test of time", ": " + (System.currentTimeMillis()- initialTime));
+                writer.write((System.currentTimeMillis()- initialTime) + "," + Double.toString(variableX) + "," + Double.toString(variableY) + "," +
                         Double.toString(variableZ) + "," + Double.toString(variableEuclidNorm) + "\n");
                 writer.flush();
             } catch (IOException e) {
@@ -547,7 +599,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //listXSample ? sampleXNew-> sampleXOld
         if (listEuclidNormThreshold != null) {
             //set sample size
-            if (listEuclidNormSample.size()  > 11 && thresholdExist) {
+            if (listEuclidNormSample.size() > 11 && thresholdExist) {
 
             /*    double sumStart = listEuclidNormSample.get(0);
                 double sumEnd = listEuclidNormSample.get(11);
@@ -557,69 +609,63 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 //first sample get set
 
                 //Log.v("fuuuuuuuuuuuuuu", " sampleXNew: " + sampleXNew.size() + " listXSample: " + listXSample.size());
-                if (SampleEuclidNormNew.size() == 0 && listEuclidNormSample.size() < 13 ) {
+                if (SampleEuclidNormNew.size() == 0 && listEuclidNormSample.size() < 13) {
                     SampleEuclidNormNew.addAll(listEuclidNormSample);
                 }
                 //TODO:set a precision for the if
-                else if(SampleEuclidNormNew.size() != 0)
-                {
+                else if (SampleEuclidNormNew.size() != 0) {
                     SampleEuclidNormNew.clear();
                     SampleEuclidNormNew.addAll(listEuclidNormSample);
                 }
 
-                if (sampleXNew.size() == 0 && listXSample.size() < 13 ) {
+                if (sampleXNew.size() == 0 && listXSample.size() < 13) {
                     sampleXNew.addAll(listXSample);
-                }
-                else if(sampleXNew.size() != 0)
-                {
+                } else if (sampleXNew.size() != 0) {
                     sampleXNew.clear();
                     sampleXNew.addAll(listXSample);
                 }
 
-                if (sampleYNew.size() == 0 && listYSample.size() < 13 ) {
+                if (sampleYNew.size() == 0 && listYSample.size() < 13) {
                     sampleYNew.addAll(listYSample);
-                }
-                else if(sampleYNew.size() != 0)
-                {
+                } else if (sampleYNew.size() != 0) {
                     sampleYNew.clear();
                     sampleYNew.addAll(listYSample);
                 }
 
-              //  Log.v("fuuuuuuuuuuuuuu", " SampleEuclidNormNew: " + calculateAverage(SampleEuclidNormNew)  + " sampleEuclidNormOld: " + calculateAverage(sampleEuclidNormOld));
-               // else{ countRegulation = 0; }
+                //  Log.v("fuuuuuuuuuuuuuu", " SampleEuclidNormNew: " + calculateAverage(SampleEuclidNormNew)  + " sampleEuclidNormOld: " + calculateAverage(sampleEuclidNormOld));
+                // else{ countRegulation = 0; }
 
                 //Log.v("pre-Cakey", " lowest number: " + new Statistics(sampleXNew).getMin() + " threshold: " +thresholdSkiiX + " countRegulation: " + countRegulation);
                 //decision area, TODO: Set up the time interval
-                if(calculateAverage(SampleEuclidNormNew) < thresholdSkii && thresholdSkii > calculateAverage(sampleEuclidNormOld)
-                        && longestTurn >500 && Math.abs(calculateAverage(SampleEuclidNormNew))-Math.abs(calculateAverage(sampleEuclidNormOld)) > 0.2 ){
+                if (calculateAverage(SampleEuclidNormNew) < thresholdSkii && thresholdSkii > calculateAverage(sampleEuclidNormOld)
+                        && longestTurn > 500 && Math.abs(calculateAverage(SampleEuclidNormNew)) - Math.abs(calculateAverage(sampleEuclidNormOld)) > 0.2) {
                     longestTurn = 0;
                     countRegulationEuclid++;
                     vView.setText("|v| turns: " + countRegulationEuclid);
-                //    Log.v("Turn cakey", " Turn: "+ countRegulationEuclid );
-                //    Log.v("Turn cakey2", " SampleEuclidNormNew: "+ calculateAverage(SampleEuclidNormNew) + " sampleEuclidNormOld: "+ calculateAverage(sampleEuclidNormOld));
+                    //    Log.v("Turn cakey", " Turn: "+ countRegulationEuclid );
+                    //    Log.v("Turn cakey2", " SampleEuclidNormNew: "+ calculateAverage(SampleEuclidNormNew) + " sampleEuclidNormOld: "+ calculateAverage(sampleEuclidNormOld));
 
                 }
-                if(calculateAverage(sampleXNew) < thresholdSkiiX && thresholdSkiiX > calculateAverage(sampleXOld) && risingX
-                        && longestTurnX >500 && Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) > 0.2 ){
+                if (calculateAverage(sampleXNew) < thresholdSkiiX && thresholdSkiiX > calculateAverage(sampleXOld) && risingX
+                        && longestTurnX > 500 && Math.abs(calculateAverage(sampleXNew)) - Math.abs(calculateAverage(sampleXOld)) > 0.2) {
                     longestTurnX = 0;
                     countRegulationX++;
                     xView.setText("x turns: " + countRegulationX);
-                    Log.v("Turn cakey", " Turn: "+ countRegulationX );
-                    Log.v("Turn cakey2", " sampleXNew: "+ calculateAverage(sampleXNew) + " sampleXOld: "+ calculateAverage(sampleXOld));
-                } else if(calculateAverage(sampleXNew) > thresholdSkiiX && thresholdSkiiX < calculateAverage(sampleXOld) && fallingX
-                        && longestTurnX >500 && Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) < 0.2 ){
+                    Log.v("Turn cakey", " Turn: " + countRegulationX);
+                    Log.v("Turn cakey2", " sampleXNew: " + calculateAverage(sampleXNew) + " sampleXOld: " + calculateAverage(sampleXOld));
+                } else if (calculateAverage(sampleXNew) > thresholdSkiiX && thresholdSkiiX < calculateAverage(sampleXOld) && fallingX
+                        && longestTurnX > 500 && Math.abs(calculateAverage(sampleXNew)) - Math.abs(calculateAverage(sampleXOld)) < 0.2) {
                     longestTurnX = 0;
                     countRegulationX++;
                     xView.setText("x turns: " + countRegulationX);
                 }
-                if(calculateAverage(sampleYNew) < thresholdSkiiY && thresholdSkiiY > calculateAverage(sampleYOld)
-                        && longestTurnY >500 && Math.abs(calculateAverage(sampleYNew))-Math.abs(calculateAverage(sampleYOld)) > 0.2 ){
+                if (calculateAverage(sampleYNew) < thresholdSkiiY && thresholdSkiiY > calculateAverage(sampleYOld)
+                        && longestTurnY > 500 && Math.abs(calculateAverage(sampleYNew)) - Math.abs(calculateAverage(sampleYOld)) > 0.2) {
                     longestTurnY = 0;
                     countRegulationY++;
                     yView.setText("y turns: " + countRegulationY);
-                }
-                else if(calculateAverage(sampleYNew) > thresholdSkiiY && thresholdSkiiY < calculateAverage(sampleYOld)
-                        && longestTurnY >500 && Math.abs(calculateAverage(sampleYNew))-Math.abs(calculateAverage(sampleYOld)) < 0.2 ){
+                } else if (calculateAverage(sampleYNew) > thresholdSkiiY && thresholdSkiiY < calculateAverage(sampleYOld)
+                        && longestTurnY > 500 && Math.abs(calculateAverage(sampleYNew)) - Math.abs(calculateAverage(sampleYOld)) < 0.2) {
                     longestTurnY = 0;
                     countRegulationY++;
                     yView.setText("y turns: " + countRegulationY);
@@ -627,19 +673,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 //count all tops
                 //falling
-                if(calculateAverage(sampleXNew) < calculateAverage(sampleXOld) && Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) > 0.2 ){
+                if (calculateAverage(sampleXNew) < calculateAverage(sampleXOld) && Math.abs(calculateAverage(sampleXNew)) - Math.abs(calculateAverage(sampleXOld)) > 0.2) {
                     fallingX = true;
                     risingX = false;
-                    if(samemovementfalling >= 1){
+                    if (samemovementfalling >= 1) {
                         topsX++;
                         Log.w("upbeat", "topsX: " + topsX);
                     }
                     samemovementrising++;
-                    samemovementfalling = 0 ;
+                    samemovementfalling = 0;
                 }
-                if(calculateAverage(sampleXNew) > calculateAverage(sampleXOld) &&
-                        Math.abs(calculateAverage(sampleXNew))-Math.abs(calculateAverage(sampleXOld)) < 0.2 ){
-                    if(samemovementrising >= 1){
+                if (calculateAverage(sampleXNew) > calculateAverage(sampleXOld) &&
+                        Math.abs(calculateAverage(sampleXNew)) - Math.abs(calculateAverage(sampleXOld)) < 0.2) {
+                    if (samemovementrising >= 1) {
                         topsX++;
                         Log.w("upbeat", "topsX: " + topsX);
                     }
@@ -693,23 +739,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 maxY = statsEuclidY.getMax();
                 thresholdSkiiY = (minY + maxY) / 2;
 
-                double yDifference = maxY-(minY);
-                double xDifference = maxX-(minX);
+                double yDifference = maxY - (minY);
+                double xDifference = maxX - (minX);
 
 
                 double amountTurns;
-                if(yDifference > xDifference){
+                if (yDifference > xDifference) {
                     stdDevs = yDifference;
                     amountTurns = countRegulationY;
 
-                }
-                else{
+                } else {
                     stdDevs = xDifference;
                     amountTurns = countRegulationX;
                 }
-                //deviant,amount of turns, speed
+                //clock, deviant,amount of turns, speed
                 try {
-                    writer2.write(c.get(Calendar.MINUTE)+":"+c.get(Calendar.SECOND)+ "."+c.get(Calendar.MILLISECOND) + "," + Double.toString(stdDevs) + "," + amountTurns + "," + mCurrentLocation.getSpeed()  +  "\n");
+                    writer2.write((System.currentTimeMillis()- initialTime) + "," + Double.toString(stdDevs) +
+                            "," + amountTurns + "," + mCurrentLocation.getSpeed() + "\n");
                     writer2.flush();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -722,6 +768,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 listEuclidNormThreshold.clear();
             }
         }
+    } else{
+        initialTime = System.currentTimeMillis();
+    }
+
     }
 
     @Override
