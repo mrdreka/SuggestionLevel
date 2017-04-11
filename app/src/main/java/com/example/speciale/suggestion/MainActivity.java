@@ -241,9 +241,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 shortestTurnbool = true;
                 h.postDelayed(this, shortestTurn);
 
-                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                v.vibrate(3000);
-
                 longestTurn = longestTurn + shortestTurn;
                 longestTurnX = longestTurnX + shortestTurn;
                 longestTurnY = longestTurnY + shortestTurn;
@@ -265,10 +262,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 // Do something after 5s = 5000ms
                 Log.v("testtesttest", "5 sec");
 
-                recordtime();
+                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                v.vibrate(3000);
+
+                delayTimerStart();
             }
             //10seconds
         }, 10000);
+    }
+
+    public void delayTimerStart(){
+
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                fiveSecond = true;
+                // Do something after 5s = 5000ms
+
+                recordtime();
+            }
+            //10seconds
+        }, 5000);
     }
 
     public void recordtime(){
@@ -289,10 +304,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                 v.vibrate(4000);
 
-
             }
             //35seconds
-        }, 36000);
+        }, 32000);
     }
 
     private void hideSystemUI() {
@@ -330,7 +344,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if (savedInstanceState.keySet().contains(REQUESTING_LOCATION_UPDATES_KEY)) {
                 mRequestingLocationUpdates = savedInstanceState.getBoolean(
                         REQUESTING_LOCATION_UPDATES_KEY);
-
             }
 
             // Update the value of mCurrentLocation from the Bundle and update the UI to show the
@@ -340,7 +353,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 // is not null.
                 mCurrentLocation = savedInstanceState.getParcelable(LOCATION_KEY);
             }
-
         }
     }
     /**
@@ -519,18 +531,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         senSensorManager.registerListener(this, senAccelerometer, SensorManager.SENSOR_DELAY_GAME);
         turnTimer();
-
+/*
         //TODO:add speed into judging of level, until then don't use
         if (!mRequestingLocationUpdates) {
             mRequestingLocationUpdates = true;
             startLocationUpdates();
-        }
+        } */
     }
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
     if(fiveSecond) {
-        Calendar c = Calendar.getInstance();
+        //Calendar c = Calendar.getInstance();
 
         //digital filter
         double dX = (double) sensorEvent.values[0];
@@ -752,10 +764,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     stdDevs = xDifference;
                     amountTurns = countRegulationX;
                 }
-                //clock, deviant,amount of turns, speed
+                //clock, deviant,amount of turns,
                 try {
                     writer2.write((System.currentTimeMillis()- initialTime) + "," + Double.toString(stdDevs) +
-                            "," + amountTurns + "," + mCurrentLocation.getSpeed() + "\n");
+                            "," + amountTurns + "," // + mCurrentLocation.getSpeed()
+                            + "\n");
                     writer2.flush();
                 } catch (IOException e) {
                     e.printStackTrace();
