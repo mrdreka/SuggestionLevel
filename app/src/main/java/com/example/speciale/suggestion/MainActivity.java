@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -43,12 +44,12 @@ import java.util.List;
 import java.util.logging.Logger;
 
 
-import weka.core.Instance;
-import weka.classifiers.Classifier;
-import weka.core.Attribute;
-import weka.core.FastVector;
-import weka.core.Instances;
-import weka.core.SerializationHelper;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -169,8 +170,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     ArrayList<Double> listZ2A = new ArrayList<>();
     ArrayList<Double> listEuclidNorm2A = new ArrayList<>();
 
-
-
+    LineChart lineChart;
+    ArrayList<Double> listXGraph = new ArrayList<>();
 
     ArrayList<Double> listcheckthresshold = new ArrayList<>();
     double variableXmiddle, //variableX, variableZ, variableEuclidNorm,
@@ -196,6 +197,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                 1);
+        lineChart = (LineChart) findViewById(R.id.lineChart);
         eta = (TextView)findViewById(R.id.eta);
         xView = (TextView)findViewById(R.id.xView);
         yView = (TextView)findViewById(R.id.yView);
@@ -223,6 +225,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 coordinates.setText("lat: " + location.getLatitude() + "  Lng: " +location.getLongitude());
             }
         }; */
+
+
+
         // Update values using data stored in the Bundle.
         updateValuesFromBundle(savedInstanceState);
         // Kick off the process of building a GoogleApiClient and requesting the LocationServices
@@ -418,6 +423,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
+
+
                 fiveSecond = false;
 
                 try {
@@ -431,6 +438,48 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                 v.vibrate(4000);
+
+              //  ArrayList<String> xAXES = new ArrayList<>();
+                ArrayList<Entry> yAXESsin = new ArrayList<>();
+                ArrayList<Entry> yAXEScos = new ArrayList<>();
+
+                for(int i=0; i < listXGraph.size();i++){
+                    double d = listXGraph.get(i);
+                    float grapplot = (float)d;
+
+                    yAXESsin.add(new Entry(grapplot,i));
+
+                }
+             /*   for(int i=0;i<numDataPoints;i++){
+                    float sinFunction = Float.parseFloat(String.valueOf(Math.sin(x)));
+                    float cosFunction = Float.parseFloat(String.valueOf(Math.cos(x)));
+                    x = x + 0.1;
+                    yAXESsin.add(new Entry(sinFunction,i));
+                    yAXEScos.add(new Entry(cosFunction,i));
+                    xAXES.add(i, String.valueOf(x));
+                } */
+          /*       String[] xaxes = new String[xAXES.size()];
+                for(int i=0; i<xAXES.size();i++){
+                    xaxes[i] = xAXES.get(i).toString();
+                } */
+
+
+                LineDataSet lineDataSet1 = new LineDataSet(yAXESsin,"x aksel");
+
+                lineDataSet1.setDrawCircles(false);
+                lineDataSet1.setColor(Color.BLUE);
+
+                XAxis xAxis = lineChart.getXAxis();
+                xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+                xAxis.setTextSize(10f);
+                xAxis.setTextColor(Color.RED);
+                xAxis.setDrawAxisLine(true);
+                xAxis.setDrawGridLines(true);
+
+                lineChart.setData(new LineData(lineDataSet1));
+
+                lineChart.setVisibleXRangeMaximum(250f);
+                listXGraph.clear();
 
             }
             //35seconds
@@ -829,6 +878,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             listX2.remove(0);
             listXThreshold.add(variableX);
             listXSample.add(variableX);
+
+            listXGraph.add(variableX);
 
 
             double variableY = calculateAverage(listY2);
