@@ -98,7 +98,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected Boolean mRequestingLocationUpdates = false;
 
 
-    TextView xView, yView, vView, eta , accSamples,infered, xVariance, yVariance, zVariance, totalVariance;
+    TextView xView,// yView, vView,
+            eta , accSamples,infered, xVariance, yVariance, zVariance, totalVariance;
    // List<AccObj> accObjList = new ArrayList<AccObj>();
     Statistics statsEuclid,statsEuclidY, statsEuclidX, statsEuclidZ ;
 
@@ -192,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main2);
 
         ActivityCompat.requestPermissions(this,
                 new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
@@ -203,8 +204,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         lineChart = (LineChart) findViewById(R.id.lineChart);
         eta = (TextView)findViewById(R.id.eta);
         xView = (TextView)findViewById(R.id.xView);
-        yView = (TextView)findViewById(R.id.yView);
-        vView = (TextView)findViewById(R.id.vView);
+      //  yView = (TextView)findViewById(R.id.yView);
+      //  vView = (TextView)findViewById(R.id.vView);
 
         xVariance = (TextView)findViewById(R.id.xVariance);
         yVariance = (TextView)findViewById(R.id.yVariance);
@@ -258,7 +259,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
 
         });
-        saveBtn.setOnClickListener(new View.OnClickListener() {
+     /*   saveBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
@@ -272,7 +273,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
               //  analyzeList();
 
             }
-        });
+        });  */
     }
 /*
     public void analyzeList() {
@@ -465,8 +466,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 for(int i=0; i<xAXES.size();i++){
                     xaxes[i] = xAXES.get(i).toString();
                 } */
-
-
 
 
                 LineDataSet lineDataSet1 = new LineDataSet(yAXESsin,"x aksel");
@@ -964,7 +963,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         && longestTurn > 500 && Math.abs(calculateAverage(SampleEuclidNormNew)) - Math.abs(calculateAverage(sampleEuclidNormOld)) > 0.2) {
                     longestTurn = 0;
                     countRegulationEuclid++;
-                    vView.setText("|v| turns: " + countRegulationEuclid);
+                //    vView.setText("|v| turns: " + countRegulationEuclid);
                     //    Log.v("Turn cakey", " Turn: "+ countRegulationEuclid );
                     //    Log.v("Turn cakey2", " SampleEuclidNormNew: "+ calculateAverage(SampleEuclidNormNew) + " sampleEuclidNormOld: "+ calculateAverage(sampleEuclidNormOld));
 
@@ -986,12 +985,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         && longestTurnY > 500 && Math.abs(calculateAverage(sampleYNew)) - Math.abs(calculateAverage(sampleYOld)) > 0.2) {
                     longestTurnY = 0;
                     countRegulationY++;
-                    yView.setText("y turns: " + countRegulationY);
+              //      yView.setText("y turns: " + countRegulationY);
                 } else if (calculateAverage(sampleYNew) > thresholdSkiiY && thresholdSkiiY < calculateAverage(sampleYOld)
                         && longestTurnY > 500 && Math.abs(calculateAverage(sampleYNew)) - Math.abs(calculateAverage(sampleYOld)) < 0.2) {
                     longestTurnY = 0;
                     countRegulationY++;
-                    yView.setText("y turns: " + countRegulationY);
+              //      yView.setText("y turns: " + countRegulationY);
                 }
 
                 //count all tops
@@ -1095,22 +1094,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 //set the amount of decimals
                 Double truncatedDoubleX = BigDecimal.valueOf(xDifference)
-                        .setScale(3, RoundingMode.HALF_UP)
+                        .setScale(2, RoundingMode.HALF_UP)
                         .doubleValue();
                 Double truncatedDoubleY = BigDecimal.valueOf(yDifference)
-                        .setScale(3, RoundingMode.HALF_UP)
+                        .setScale(2, RoundingMode.HALF_UP)
                         .doubleValue();
                 Double truncatedDoubleZ = BigDecimal.valueOf(zDifference)
-                        .setScale(3, RoundingMode.HALF_UP)
+                        .setScale(2, RoundingMode.HALF_UP)
                         .doubleValue();
                 Double truncatedDoubleTotal = BigDecimal.valueOf(total)
-                        .setScale(3, RoundingMode.HALF_UP)
+                        .setScale(2, RoundingMode.HALF_UP)
                         .doubleValue();
 
-                xVariance.setText("X: " +  truncatedDoubleX);
-                yVariance.setText("Y: " + truncatedDoubleY);
-                zVariance.setText("Z: " + truncatedDoubleZ);
-                totalVariance.setText("Total: " + truncatedDoubleTotal);
+                xVariance.setText("" + truncatedDoubleX);
+                yVariance.setText("" + truncatedDoubleY);
+                zVariance.setText(""+ truncatedDoubleZ);
+                totalVariance.setText("" + truncatedDoubleTotal);
 
                 //clock, deviant,amount of turns,
                 try {
