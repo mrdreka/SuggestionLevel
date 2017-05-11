@@ -34,6 +34,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +48,7 @@ import java.util.logging.Logger;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
@@ -443,7 +446,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 ArrayList<Entry> yAXESsin = new ArrayList<>();
                 ArrayList<Entry> yAXEScos = new ArrayList<>();
 
-                for(int i=0; i < listXGraph.size();i++){
+                for(int i=0; i < 1000;i++){
                     double d = listXGraph.get(i);
                     float grapplot = (float)d;
 
@@ -464,10 +467,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 } */
 
 
+
+
                 LineDataSet lineDataSet1 = new LineDataSet(yAXESsin,"x aksel");
+
 
                 lineDataSet1.setDrawCircles(false);
                 lineDataSet1.setColor(Color.BLUE);
+
 
                 XAxis xAxis = lineChart.getXAxis();
                 xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
@@ -478,7 +485,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 lineChart.setData(new LineData(lineDataSet1));
 
-                lineChart.setVisibleXRangeMaximum(250f);
+
+
+
+              //  lineChart.setVisibleXRangeMaximum(250f);
                 listXGraph.clear();
 
             }
@@ -912,7 +922,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //listXSample ? sampleXNew-> sampleXOld
         if (listEuclidNormThreshold != null) {
             //set sample size
-            if (listEuclidNormSample.size() > 11 && thresholdExist) {
+            if (listEuclidNormSample.size() > 12 && thresholdExist) {
 
             /*    double sumStart = listEuclidNormSample.get(0);
                 double sumEnd = listEuclidNormSample.get(11);
@@ -1038,34 +1048,36 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 Log.v("Together", " variableXmiddle: " + variableXmiddle + " stdDev: " + stdDev);
                 //System.out.println("Min value " + min + " Max value " + max + " thresholdSkii" + thresholdSkii);
 
-                // x
+                // x stdDev is variance instead
                 statsEuclidX = new Statistics(listXThreshold);
-                stdDevX = statsEuclidX.getStdDev();
+                stdDevX = statsEuclidX.getVariance();
                 minX = statsEuclidX.getMin();
                 maxX = statsEuclidX.getMax();
                 thresholdSkiiX = (minX + maxX) / 2;
 
-                // y
+                // y stdDev is variance instead
                 statsEuclidY = new Statistics(listYThreshold);
-                stdDevY = statsEuclidY.getStdDev();
+                stdDevY = statsEuclidY.getVariance();
                 minY = statsEuclidY.getMin();
                 maxY = statsEuclidY.getMax();
+
                 thresholdSkiiY = (minY + maxY) / 2;
 
+                // stdDev is variance instead
                 statsEuclidZ = new Statistics(listZThreshold);
-                stdDevZ = statsEuclidZ.getStdDev();
+                stdDevZ = statsEuclidZ.getVariance();
                 minZ = statsEuclidZ.getMin();
                 maxZ = statsEuclidZ.getMax();
                 thresholdSkiiZ = (minZ + maxZ) / 2;
 
-                if(maxY - (minY) > yDifference){
-                    yDifference = maxY - (minY);
+                if(stdDevY > yDifference){
+                    yDifference = stdDevY;
                 }
-                if(maxX - (minX) > xDifference){
-                    xDifference = maxX - (minX);
+                if(stdDevX > xDifference){
+                    xDifference = stdDevX;
                 }
-                if(maxZ - (minZ) > zDifference){
-                    zDifference = maxZ - (minZ);
+                if(stdDevZ > zDifference){
+                    zDifference = stdDevZ;
                 }
 
                 double total = yDifference + xDifference + zDifference;
@@ -1080,10 +1092,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     stdDevs = xDifference;
                     amountTurns = countRegulationX;
                 }
-                xVariance.setText("X: " + Math.round(xDifference));
-                yVariance.setText("Y: " + Math.round(yDifference));
-                zVariance.setText("Z: " + Math.round(zDifference));
-                totalVariance.setText("Total: " + Math.round(total));
+
+                //set the amount of decimals
+                Double truncatedDoubleX = BigDecimal.valueOf(xDifference)
+                        .setScale(3, RoundingMode.HALF_UP)
+                        .doubleValue();
+                Double truncatedDoubleY = BigDecimal.valueOf(yDifference)
+                        .setScale(3, RoundingMode.HALF_UP)
+                        .doubleValue();
+                Double truncatedDoubleZ = BigDecimal.valueOf(zDifference)
+                        .setScale(3, RoundingMode.HALF_UP)
+                        .doubleValue();
+                Double truncatedDoubleTotal = BigDecimal.valueOf(total)
+                        .setScale(3, RoundingMode.HALF_UP)
+                        .doubleValue();
+
+                xVariance.setText("X: " +  truncatedDoubleX);
+                yVariance.setText("Y: " + truncatedDoubleY);
+                zVariance.setText("Z: " + truncatedDoubleZ);
+                totalVariance.setText("Total: " + truncatedDoubleTotal);
 
                 //clock, deviant,amount of turns,
                 try {
