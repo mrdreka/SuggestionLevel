@@ -1077,9 +1077,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if(stdDevY > yDifference){
                     yDifference = stdDevY;
                 }
-                if(stdDevX > xDifference){
+               // if(stdDevX > xDifference){
                     xDifference = stdDevX;
-                }
+                //}
                 if(stdDevZ > zDifference){
                     zDifference = stdDevZ;
                 }
@@ -1117,24 +1117,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 totalVariance.setText("" + truncatedDoubleTotal);
 
                 //expert
-                if(total >= 6){
-                    levelView.setBackgroundColor(Color.MAGENTA);
+                if(total >= 10){
+                    levelView.setBackgroundColor(Color.BLACK);
                     level.setText("Expert");
-
                 }
                 //advance
                 else if(total >= 4) {
-                    levelView.setBackgroundColor(Color.MAGENTA);
+                    levelView.setBackgroundColor(Color.GRAY);
                     level.setText("Advanced");
                 }
                 //intermediate
-                else if(total > 2) {
-                    levelView.setBackgroundColor(Color.MAGENTA);
+                else if(total >= 1) {
+                    levelView.setBackgroundColor(Color.RED);
                     level.setText("Intermediate");
                 }
+                //intermediate
+                else if(total > 0.3) {
+                    levelView.setBackgroundColor(Color.BLUE);
+                    level.setText("Recreational");
+                }
                 //beginner
-                else if(total <= 2) {
-                    levelView.setBackgroundColor(Color.MAGENTA);
+                else if(total <= 0.3) {
+                    levelView.setBackgroundColor(Color.GREEN);
                     level.setText("Beginner");
                 }
 

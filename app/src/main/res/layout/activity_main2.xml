@@ -240,18 +240,20 @@
         android:id="@+id/level"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="8dp"
         android:layout_marginRight="16dp"
         android:textAlignment="center"
         android:textColor="@color/white"
         android:text="Level"
         android:textAppearance="@style/TextAppearance.AppCompat.Large"
-        app:layout_constraintHorizontal_bias="0.853"
-        app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/total"
         android:layout_marginStart="8dp"
-        android:layout_marginEnd="16dp" />
+        android:layout_marginEnd="16dp"
+
+        android:layout_marginLeft="8dp"
+        app:layout_constraintLeft_toLeftOf="@+id/levelcolor"
+        app:layout_constraintHorizontal_bias="0.558"
+        android:layout_marginTop="-7dp" />
 
     <TextView
         android:id="@+id/textView5"
