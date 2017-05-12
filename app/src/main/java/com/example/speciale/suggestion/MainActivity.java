@@ -25,6 +25,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Chronometer;
+import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -99,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
     TextView xView,// yView, vView,
-            eta , accSamples,infered, xVariance, yVariance, zVariance, totalVariance;
+            eta , accSamples,infered, xVariance, yVariance, zVariance, totalVariance, level;
    // List<AccObj> accObjList = new ArrayList<AccObj>();
     Statistics statsEuclid,statsEuclidY, statsEuclidX, statsEuclidZ ;
 
@@ -189,6 +190,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private boolean fiveSecond = false;
 
+    GridView levelView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -206,6 +208,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         xView = (TextView)findViewById(R.id.xView);
       //  yView = (TextView)findViewById(R.id.yView);
       //  vView = (TextView)findViewById(R.id.vView);
+
+        levelView = (GridView)findViewById(R.id.levelcolor);
+        level =(TextView)findViewById(R.id.level);
 
         xVariance = (TextView)findViewById(R.id.xVariance);
         yVariance = (TextView)findViewById(R.id.yVariance);
@@ -1110,6 +1115,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 yVariance.setText("" + truncatedDoubleY);
                 zVariance.setText(""+ truncatedDoubleZ);
                 totalVariance.setText("" + truncatedDoubleTotal);
+
+                //expert
+                if(total >= 6){
+                    levelView.setBackgroundColor(Color.MAGENTA);
+                    level.setText("Expert");
+
+                }
+                //advance
+                else if(total >= 4) {
+                    levelView.setBackgroundColor(Color.MAGENTA);
+                    level.setText("Advanced");
+                }
+                //intermediate
+                else if(total > 2) {
+                    levelView.setBackgroundColor(Color.MAGENTA);
+                    level.setText("Intermediate");
+                }
+                //beginner
+                else if(total <= 2) {
+                    levelView.setBackgroundColor(Color.MAGENTA);
+                    level.setText("Beginner");
+                }
+
 
                 //clock, deviant,amount of turns,
                 try {

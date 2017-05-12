@@ -8,6 +8,7 @@
 
 
     <GridView
+        android:id="@+id/levelcolor"
         android:layout_width="178dp"
         android:layout_height="116dp"
         android:layout_marginLeft="8dp"
